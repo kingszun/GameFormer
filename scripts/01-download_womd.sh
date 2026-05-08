@@ -27,8 +27,11 @@ if ! command -v gsutil >/dev/null 2>&1; then
     exit 1
 fi
 
-if ! gcloud auth list --filter=status:ACTIVE --format="value(account)" 2>/dev/null | grep -q '@'; then
-    echo "ERROR: gcloud not authenticated. Run: gcloud auth login" >&2
+# auth check: 'gcloud auth login' (host) 또는 ADC (cloud pod) 둘 중 하나 통과시 OK
+HAS_USER_AUTH=$(gcloud auth list --filter=status:ACTIVE --format="value(account)" 2>/dev/null | grep -c '@' || true)
+HAS_ADC=$(gcloud auth application-default print-access-token >/dev/null 2>&1 && echo 1 || echo 0)
+if [ "${HAS_USER_AUTH}" = "0" ] && [ "${HAS_ADC}" = "0" ]; then
+    echo "ERROR: gcloud not authenticated. Run 'gcloud auth login' (host) or set GOOGLE_APPLICATION_CREDENTIALS to ADC json (pod)." >&2
     exit 1
 fi
 
