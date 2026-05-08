@@ -19,7 +19,7 @@ set -euo pipefail
 
 WOMD_VERSION="${WOMD_VERSION:-1_2_1}"
 WOMD_SUBSET="${WOMD_SUBSET:-validation_interactive}"
-WOMD_DEST="${WOMD_DEST:-./data/raw}"
+WOMD_DEST="${WOMD_DEST:-${DATASET_HOME:-./data}/raw}"
 WOMD_SHARDS="${WOMD_SHARDS:-2}"
 
 if [ -x /opt/venv/gcs/bin/python ]; then
