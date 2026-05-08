@@ -1,5 +1,6 @@
 .env
 data
+logs/
 training_log/
 testing_log/
 __pycache__/

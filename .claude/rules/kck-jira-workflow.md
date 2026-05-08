@@ -41,7 +41,7 @@
 - `To Do` → `In Progress` — 작업 시작 시
 - `In Progress` → `Done` — 작업 완료 + verify 통과 시
 - `In Progress` → `Blocked` — 외부 의존으로 막힘. 막힌 사유를 comment 로 기록
-- `Done` 으로 전환 시 ticket comment 에 결과 요약 + 관련 commit hash 추가
+- `Done` 전환 규칙은 "작업 결과 / log 기록" + "Done 시 의무 sync" section 참조
 
 ### Commit / branch 매핑
 
@@ -78,6 +78,43 @@ ticket 만들거나 수정할 때 항상 user 에게 결과 보고 (key + summar
   - 외부 의존성 (cloud 비용, 데이터 다운로드 시간 등)
 - assignee 는 등록 시점에 알 수 없으면 미지정 (현재 user 가 단독 작업 중이면 본인).
 - estimate 는 알 수 있을 때만 (불확실하면 비워둠).
+
+### 작업 결과 / log 기록 (모든 ticket 공통)
+
+`In Progress` → `Done` 으로 전환 시 ticket comment 에 다음을 모두 포함한다:
+
+- 실행한 command — 그대로 복사 가능한 형식 (code block). 요약 금지.
+- 결과 metric — runtime, throughput, output size/count, GPU/CPU/mem util, loss 등. 표 형식 권장.
+- 검증 결과 — `PASS` / `FAIL` + 사유.
+- 산출물 path — log file, checkpoint, output directory, 관련 commit hash.
+- baseline 비교 — 이전 측정값 또는 reference 가 있으면 같은 표에 병기.
+
+raw log 보관 정책:
+
+- host repo `logs/{TICKET-ID}_{short_desc}.log` 에 보관 (예: `logs/KAK-9_train_smoke.log`).
+- `logs/` 는 `.gitignore` (git tracking 금지 — 용량 누적 + secret 가능성).
+- jira attachment upload 가능하면 첨부. 안 되면 comment 에 `host file path` + 핵심 발췌 (head/tail 50 line) 포함.
+- pod 등 원격에서 생성한 log 는 `scp` 로 host 에 회수 후 동일 위치 저장.
+
+### Done 시 의무 sync (다중 위치)
+
+ticket Done 전환과 같은 turn 안에 다음을 모두 update — SSOT 유지:
+
+- 관련 docs (`docs/0X-*.md`) — 결과 표, baseline, diagram, fact 변경.
+- `CLAUDE.md` — 핵심 fact (image digest, image tag, command, 비용 등) 변경 시.
+- memory (`~/.claude/projects/.../memory/*.md`) — project state, reference, feedback.
+- `git add` 변경 file — commit 은 user 지시 시에만 (`kck-git-workflow.md` 준수).
+
+작업 중 발견한 추가 작업/위험은 즉시 신규 ticket 발행 (사후 정리 금지). 발견 ticket comment 에 신규 ticket key 를 link.
+
+### 명령 실행 / log 보존 정책
+
+모든 외부 system 명령 (runpodctl, gcloud, gsutil, ssh, scp, docker, curl 등) 의 실행은:
+
+- comment 에 명령 + 결과를 함께 기록 (요약 X — raw stdout/stderr 그대로 또는 head/tail).
+- script 가 host-only 또는 pod-only 패턴 (예: `docker compose exec`) 으로 묶여있어 우회한 경우, 우회한 직접 명령 + 사유를 명시. script 자체 개선은 별도 ticket 으로 발행.
+- 인증 정보 (token, key, password, ADC, refresh token 등) 는 결과에서 redact (`***` 또는 `<redacted>`) 후 기록.
+- 긴 stdout 은 host log file 로 redirect 한 후 (`> logs/{TICKET-ID}_{cmd}.log 2>&1`) ticket 에는 path + 발췌 첨부.
 
 ### 실험 ticket 양식
 
