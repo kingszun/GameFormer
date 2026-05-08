@@ -59,7 +59,7 @@ class DataProcess(object):
             elif map_type == 'speed_bump':
                 self.speed_bumps[map_id] = map
             else:
-                raise TypeError
+                continue
 
         self.roads.update(self.road_edges)
         self.roads.update(self.road_lines)

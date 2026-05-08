@@ -1,0 +1,31 @@
+name: ${COMPOSE_PROJECT_NAME:-gameformer}
+
+services:
+  gameformer:
+    image: ${IMAGE_REPO:-gameformer}:${IMAGE_TAG:-cu118-py310-torch2.3.1}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gameformer
+    working_dir: /workspace/GameFormer
+    user: "${USER_UID:-1000}:${USER_GID:-1000}"
+    stdin_open: true
+    tty: true
+    ipc: host
+    shm_size: ${SHM_SIZE:-8gb}
+    ulimits:
+      memlock: -1
+      stack: 67108864
+    gpus: ${DOCKER_GPUS:-all}
+    environment:
+      HOME: /tmp
+      PYTHONUNBUFFERED: "1"
+      TF_FORCE_GPU_ALLOW_GROWTH: "true"
+      TF_CPP_MIN_LOG_LEVEL: "2"
+      TORCH_CUDA_ARCH_LIST: ${TORCH_CUDA_ARCH_LIST:-8.6;9.0+PTX}
+      CMAKE_CUDA_ARCHITECTURES: ${CMAKE_CUDA_ARCHITECTURES:-86;90}
+      DATA_ROOT: /workspace/GameFormer/data
+    volumes:
+      - .:/workspace/GameFormer
+      - ${DATASET_HOME:-./data}:/workspace/GameFormer/data
+    command: ${COMPOSE_COMMAND:-sleep infinity}

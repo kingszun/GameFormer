@@ -1,0 +1,83 @@
+## 05 - cloud plan
+
+local 검증 완료 후 RunPod에서 학습 진행하기 위한 계획. 결정 사항 + 구체 절차.
+
+### 결정 사항
+
+| 항목 | 선택 | 비고 |
+| --- | --- | --- |
+| 학습 범위 | 1×4090 smoke | $0.3, 1~2h. 본격 학습 전 cloud 환경 통과만 확인 |
+| WOMD 인증 | GCP service account JSON key | 비대화형 자동화. 한 번 발급으로 어느 pod에서든 재사용 |
+| 코드 전달 | git push → cloud pod git clone | Docker Hub image (5GB)는 한 번만 push. 코드 변경은 git만 |
+
+smoke 통과 후 후속 결정:
+- (b) open_loop_planning full — 1×A100 ~$30~50, ~24h
+- (c) interaction_prediction single-GPU — 1×H100 ~$60~120, 1~2일
+- (d) interaction_prediction 4×H100 paper 재현 — ~$100~300, 5~15h
+
+### 사전 user 준비 사항
+
+| # | 항목 | 상태 |
+| --- | --- | --- |
+| 1 | RunPod 가입 + 결제 ($20 충전 권장) | done? user 진행 |
+| 2 | RunPod API key 발급 + `RUNPOD_API_KEY` env | done (`~/.zshrc` 등록 확인) |
+| 3 | Docker Hub `kingszun` push | done (`kingszun/gameformer:cu118-py310-torch2.3.1`) |
+| 4 | GCP service account JSON key 발급 | pending — user 단계 |
+| 5 | git remote (push 대상) 결정 + commit + push | pending — user/agent 협의 |
+
+### GCP service account JSON 발급 절차 (user 단계)
+
+1. GCP Console (https://console.cloud.google.com) 진입 (Waymo 등록한 동일 Google account)
+2. project 선택 또는 신규 생성
+3. IAM & Admin → Service Accounts → `+ Create Service Account`
+4. 이름: `waymo-reader`, role: `Storage Object Viewer` (read-only) 선택
+5. 생성 후 service account 클릭 → Keys 탭 → `Add Key` → `Create new key` → JSON
+6. 다운로드된 JSON 파일 안전 보관 → cloud pod로 secure 전달
+
+다운로드된 JSON 사용:
+```
+gcloud auth activate-service-account --key-file=/path/to/sa.json
+gsutil ls gs://waymo_open_dataset_motion_v_1_2_1/
+```
+
+### 코드 전달 (3a) 절차
+
+1. local repo의 변경 사항 commit:
+   - file: Dockerfile, compose.yaml, .env.example, .dockerignore, .gitignore, scripts/*, docs/*, CLAUDE.md
+   - 코드 수정: `interaction_prediction/train.py`, `open_loop_planning/data_process.py`
+2. user 소유 git remote에 push (예: `kingszun/gameformer-fork`)
+3. cloud pod에서 `git clone <remote>` 또는 `git pull`
+
+### Cloud pod 생성 절차 (agent 자동화 가능 부분)
+
+agent가 `runpodctl` 또는 GraphQL API로 처리:
+
+1. pod 생성:
+   - GPU type: `RTX 4090` (community cloud 가장 저렴)
+   - container image: `kingszun/gameformer:cu118-py310-torch2.3.1`
+   - container disk: 30 GB (image 5GB + data 일부)
+   - volume disk: 50 GB (선택, dataset cache용)
+   - region: us-central (WOMD bucket region 일치)
+   - command: `sleep infinity`
+2. pod 기동 후 SSH 진입 (RunPod 자동 expose)
+3. cloud pod 내부:
+   - git clone
+   - service account JSON upload (scp)
+   - `gcloud auth activate-service-account ...`
+   - `bash scripts/01-download_womd.sh` (training_20s 1~2 shard)
+   - `bash scripts/02-build_image.sh` 불필요 (image 이미 pull됨, 그러나 코드 변경 시 image 안의 코드도 update 필요 — image에 코드는 안 들어있으므로 git clone만으로 OK)
+   - 학습 launch
+4. 학습 완료 후 pod stop (비용 절약)
+
+### 비용 통제
+
+- pod stop ≠ 삭제. stop 시 storage 비용만 소량 (~$0.07/GB/월). compute 청구는 정지.
+- 작업 후 즉시 stop 또는 terminate 습관화.
+- 4090은 시간당 $0.3 수준 — 1~2h smoke은 $0.3~0.6.
+- 학습 launch 전 GPU/region/disk 비용 확인하고 진행.
+
+### 미해결 / 위험
+
+- multi-GPU NCCL 정합성: 3060 1장으로는 검증 불가. cloud single-GPU에서도 우회되므로 multi-GPU 단계 진입 시 별도 검증 필요.
+- WOMD 전체 (수백 GB) cloud download 속도: GCS bucket region (us-central1)과 pod region 일치 시 1~5 Gbps. 실측 후 단계 결정.
+- TF + torch 동거 안정성: smoke에서 통과 확인. 장시간 학습에서 TF GPU init 시도가 OOM 유발할 가능성 — `CUDA_VISIBLE_DEVICES=""` 로 TF 격리 필요 시 별도 metric process 분리 검토.

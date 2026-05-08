@@ -1,0 +1,9 @@
+.git/
+data/
+training_log/
+testing_log/
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+.env
