@@ -110,7 +110,9 @@ def valid_epoch(data_loader, model):
 
 def model_training():
     # Logging
-    log_path = f"./training_log/{args.name}/"
+    # KAK-33: TRAINING_LOG_HOME env 로 산출물 위치 외부화 (host: ./training_log, pod: /workspace/data/runs).
+    log_home = os.environ.get('TRAINING_LOG_HOME', './training_log')
+    log_path = f"{log_home}/{args.name}/"
     os.makedirs(log_path, exist_ok=True)
     initLogging(log_file=log_path+'train.log')
 
@@ -155,12 +157,12 @@ def model_training():
                'val-predictorADE': val_metrics[2], 'val-predictorFDE': val_metrics[3]}
 
         if epoch == 0:
-            with open(f'./training_log/{args.name}/train_log.csv', 'w') as csv_file: 
-                writer = csv.writer(csv_file) 
+            with open(log_path+'train_log.csv', 'w') as csv_file:
+                writer = csv.writer(csv_file)
                 writer.writerow(log.keys())
                 writer.writerow(log.values())
         else:
-            with open(f'./training_log/{args.name}/train_log.csv', 'a') as csv_file: 
+            with open(log_path+'train_log.csv', 'a') as csv_file:
                 writer = csv.writer(csv_file)
                 writer.writerow(log.values())
 
@@ -168,8 +170,8 @@ def model_training():
         scheduler.step()
 
         # save model at the end of epoch
-        torch.save(gameformer.state_dict(), f'training_log/{args.name}/predictor_{epoch+1}_{val_metrics[0]:.4f}.pth')
-        logging.info(f"Model saved in training_log/{args.name}\n")
+        torch.save(gameformer.state_dict(), log_path+f'predictor_{epoch+1}_{val_metrics[0]:.4f}.pth')
+        logging.info(f"Model saved in {log_path}\n")
 
 
 if __name__ == "__main__":

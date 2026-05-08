@@ -55,6 +55,33 @@ upstream GameFormer 코드 대비 변경 사항. 모두 환경 호환성 패치�
 - fd 한계 무관, 추가 의존성 없음, batch 8 size 에선 I/O overhead 무시 가능.
 - 3060 환경에도 동일하게 안전 (file_system 도 정상 동작).
 
+### patch 4 — train.py log_path env 외부화
+
+|  |  |
+| --- | --- |
+| 파일 | `open_loop_planning/train.py:111~117`, `interaction_prediction/train.py:1~18, 148~155` |
+| 변경 | `log_path = f"./training_log/{args.name}/"` → `log_home = os.environ.get('TRAINING_LOG_HOME', './training_log')` 후 `f"{log_home}/{args.name}/"` |
+| ticket | KAK-33 |
+
+배경:
+- 산출물 (training_log + checkpoint) 이 cwd 기준 상대 path 라 cloud pod container disk 에 저장 → pod destroy 시 사라짐 (KAK-9 진행 시 scp 회수).
+- 두 환경 (host docker compose vs cloud pod) 의 산출물 경로를 분리해야 — host: `./training_log/`, pod: `/workspace/data/runs/` (volume).
+- env 로 외부화하면 train.py 수정 없이 script wrapper 에서 분기 가능.
+
+영향:
+- env 미지정 시 default `./training_log/` 그대로 — 기존 host 동작 무변경.
+- `interaction_prediction/train.py` 도 동일 patch + 동시에 KAK-30 의 `set_sharing_strategy('file_system')` 같이 적용 (cloud DDP 환경에서 동일 fd 한계 위험).
+
+### patch 5 — interaction_prediction/train.py: file_system sharing strategy
+
+|  |  |
+| --- | --- |
+| 파일 | `interaction_prediction/train.py:1~18` |
+| 변경 | `torch.multiprocessing.set_sharing_strategy('file_system')` 추가 |
+| ticket | KAK-33 |
+
+KAK-30 의 open_loop 와 동일 — high-core pod 환경에서 fd 한계 초과 방지. cloud DDP 학습 시 effective.
+
 ### 미적용 후보 patch (현재 불필요)
 
 - `torch.distributed.launch` → `torchrun` 전환:

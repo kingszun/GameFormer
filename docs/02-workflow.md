@@ -7,6 +7,20 @@ scripts/README.md 와 함께 참조. 이 문서는 각 단계의 의도와 환�
 - 호스트 단독 (cloud 이전 단계): WOMD download, image build, container 기동
 - 컨테이너 내부 (host에서 호출): smoke test, preprocess, train
 
+### MODE auto-detect (host vs pod)
+
+scripts/05, 06 은 `MODE` env 자동 감지:
+
+- `MODE=host` (default on host): `docker compose exec gameformer ...` 로 dispatch
+- `MODE=pod` (auto when `/.dockerenv` 존재 또는 `IN_POD=1`): 직접 python 실행
+
+| env | host default | pod default | 의미 |
+| --- | --- | --- | --- |
+| `DATASET_HOME` | `/workspace/GameFormer/data` | `/workspace/data` | data root (compose mount vs volume) |
+| `TRAINING_LOG_HOME` | `/workspace/GameFormer/training_log` | `/workspace/data/runs` | 산출물 root |
+
+train.py 가 `TRAINING_LOG_HOME` env 받아 `{HOME}/{name}/...` 로 출력 (KAK-33 patch). 명시 override 가능 — 예: `TRAINING_LOG_HOME=/workspace/data/exp01_runs bash scripts/06-...`.
+
 ### 1단계 — host 환경 점검
 
 다음을 host에서 1회 확인:
@@ -107,12 +121,18 @@ cd interaction_prediction && python -m torch.distributed.launch \
 
 ### 산출물 위치
 
-- raw: `data/raw/${WOMD_SUBSET}/*.tfrecord*`
-- processed: `data/processed/{open_loop,interaction}/${SPLIT}/*.npz`
-- training log: `{interaction_prediction,open_loop_planning}/training_log/${NAME}/`
-  - `train.log` — text log
-  - `train_log.csv` — epoch별 metric
-  - `epochs_N.pth` 또는 `predictor_N_*.pth` — checkpoint
+| 산출물 | host | pod |
+| --- | --- | --- |
+| raw | `data/raw/${WOMD_SUBSET}/*.tfrecord*` | `/workspace/data/raw/${WOMD_SUBSET}/*.tfrecord*` |
+| processed | `data/processed/{open_loop,interaction}/${SPLIT}/*.npz` | `/workspace/data/processed/...` |
+| training log + checkpoint | `training_log/${NAME}/` (KAK-33 후) | `/workspace/data/runs/${NAME}/` (volume) |
+
+산출물 file:
+- `train.log` — text log
+- `train_log.csv` — epoch별 metric
+- `epochs_N.pth` 또는 `predictor_N_*.pth` — checkpoint
+
+pod 의 산출물은 network volume 에 저장되어 pod destroy 시에도 보존 (KAK-33).
 
 ### container 정리
 

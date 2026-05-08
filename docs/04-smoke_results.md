@@ -81,11 +81,41 @@ checkpoint: `predictor_1_8.3482.pth`
 
 checkpoint: `epochs_0.pth`
 
+### cloud smoke (RunPod 4090, KAK-9, 26-05-08)
+
+| 항목 | 값 |
+| --- | --- |
+| pod | RTX 4090 (sm_89), SECURE us-il-1, $0.69/hr |
+| image digest | `sha256:be65105c11d587455301ff12bfb96f1226d74022a33d228584f7ebb68ec307a0` |
+| dataset | training_20s 2 shard (164 MB) → 3610 npz (1.8 GB), 동일 |
+| batch_size / epochs / lr / levels | 8 / 1 / 1e-4 / 4 |
+
+결과 (`logs/KAK-9_cloud_smoke_train.csv`):
+
+| metric | 4090 cloud | 3060 baseline | 차이 |
+| --- | --- | --- | --- |
+| train_loss | 88.53 | 91.05 | -2.5 |
+| val_loss | 48.59 | 48.04 | +0.6 |
+| train_plannerADE | 11.19 | 11.38 | -0.19 |
+| val_plannerADE | 8.51 | 8.35 | +0.16 |
+| val_plannerFDE | 18.77 | 18.43 | +0.34 |
+| val_predictorADE | 8.18 | 8.20 | -0.02 |
+| val_predictorFDE | 12.93 | 12.89 | +0.04 |
+| 1 epoch + val runtime | 6 분 50 초 | ~10 분 | -32% |
+| GPU util | 16% / 3.5 GB | n/a | batch 8 너무 작음 |
+
+baseline 과 정합 — random seed + dataset 동일성 확인. checkpoint `KAK-9_cloud_smoke_predictor_1_8.5076.pth`.
+
+발견:
+- pod ulimit -n 1024 + worker 128 = fd 한계 초과. KAK-30 patch (`torch.multiprocessing.set_sharing_strategy('file_system')`) 적용 후 통과
+- batch 8 에서 GPU 16% — 본격 학습 시 batch 32~64 까지 확대 가능
+
 ### performance baseline
 
-| GPU | task | batch | s/sample (steady) | 1 epoch 예상 |
+| GPU | task | batch | s/sample (steady) | 1 epoch |
 | --- | --- | --- | --- | --- |
 | 3060 | open_loop_planning | 8 | n/a | ~10분 (3610 sample) |
+| 4090 cloud | open_loop_planning | 8 | n/a | 5분 10초 train + 1분 40초 val |
 | 3060 | interaction_prediction | 4 | 0.0146 | ~13분 (8520 sample) |
 | H100 (예상) | interaction_prediction | 16 | ~0.003 | ~2~3분 |
 | H200 (예상) | interaction_prediction | 32 | ~0.002 | ~1~2분 |
@@ -106,3 +136,4 @@ checkpoint: `epochs_0.pth`
 | waymo metrics ops (TF+torch 동거) | ok | TF_FORCE_GPU_ALLOW_GROWTH로 conflict 회피 |
 | Multi-GPU NCCL all-reduce | unverified | 3060 1장으로 검증 불가, cloud 단계에서 |
 | 대규모 dataset (수백 GB) iteration | unverified | cloud 단계에서 |
+| cloud (RunPod 4090 SECURE) end-to-end | ok | KAK-3 / KAK-9 통과, train_loss/val_loss baseline 정합 |
