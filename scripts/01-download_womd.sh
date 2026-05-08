@@ -1,14 +1,19 @@
 #!/usr/bin/env bash
-# WOMD scenario tfrecord download (host 실행 전제)
+# WOMD scenario tfrecord download.
+#
+# Wrapper that delegates to scripts/01-download_womd.py.
+# - image: /opt/venv/gcs/bin/python (KAK-18 aux venv with google-cloud-storage)
+# - host : system python (host 에 google-cloud-storage 또는 google-cloud-sdk 필요)
 #
 # Prerequisites:
 #   1. Waymo Open Dataset license 동의 - https://waymo.com/open/licensing/
-#   2. host에 google-cloud-cli 설치 + gcloud auth login (Waymo 등록 계정과 동일)
+#   2. ADC 또는 gcloud auth login (Waymo 등록 계정과 동일).
+#      cloud pod 는 GOOGLE_APPLICATION_CREDENTIALS env 로 ADC json 경로 명시.
 #
 # Usage:
-#   bash download/download_womd.sh
-#   WOMD_SUBSET=training_20s WOMD_SHARDS=2 bash download/download_womd.sh
-#   WOMD_SHARDS=all bash download/download_womd.sh   # 전체 (수백 GB)
+#   bash scripts/01-download_womd.sh
+#   WOMD_SUBSET=training_20s WOMD_SHARDS=2 bash scripts/01-download_womd.sh
+#   WOMD_SHARDS=all bash scripts/01-download_womd.sh   # 전체 (수백 GB)
 
 set -euo pipefail
 
@@ -17,40 +22,16 @@ WOMD_SUBSET="${WOMD_SUBSET:-validation_interactive}"
 WOMD_DEST="${WOMD_DEST:-./data/raw}"
 WOMD_SHARDS="${WOMD_SHARDS:-2}"
 
-BUCKET="gs://waymo_open_dataset_motion_v_${WOMD_VERSION}/uncompressed/scenario/${WOMD_SUBSET}"
-TARGET="${WOMD_DEST}/${WOMD_SUBSET}"
-
-mkdir -p "${TARGET}"
-
-if ! command -v gsutil >/dev/null 2>&1; then
-    echo "ERROR: gsutil not installed. Install google-cloud-cli first." >&2
-    exit 1
-fi
-
-# auth check: 'gcloud auth login' (host) 또는 ADC (cloud pod) 둘 중 하나 통과시 OK
-HAS_USER_AUTH=$(gcloud auth list --filter=status:ACTIVE --format="value(account)" 2>/dev/null | grep -c '@' || true)
-HAS_ADC=$(gcloud auth application-default print-access-token >/dev/null 2>&1 && echo 1 || echo 0)
-if [ "${HAS_USER_AUTH}" = "0" ] && [ "${HAS_ADC}" = "0" ]; then
-    echo "ERROR: gcloud not authenticated. Run 'gcloud auth login' (host) or set GOOGLE_APPLICATION_CREDENTIALS to ADC json (pod)." >&2
-    exit 1
-fi
-
-echo "version: ${WOMD_VERSION}"
-echo "subset:  ${WOMD_SUBSET}"
-echo "source:  ${BUCKET}"
-echo "target:  ${TARGET}"
-echo "shards:  ${WOMD_SHARDS}"
-
-if [ "${WOMD_SHARDS}" = "all" ]; then
-    gsutil -m cp -r "${BUCKET}/*" "${TARGET}/"
+if [ -x /opt/venv/gcs/bin/python ]; then
+    PYTHON=/opt/venv/gcs/bin/python
 else
-    gsutil ls "${BUCKET}/" \
-        | grep -E '\.tfrecord' \
-        | head -n "${WOMD_SHARDS}" \
-        | while read -r url; do
-            gsutil cp "${url}" "${TARGET}/"
-        done
+    PYTHON="${PYTHON:-python3}"
 fi
 
-echo "done"
-ls -lh "${TARGET}" | head -n 10
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+exec "$PYTHON" "${SCRIPT_DIR}/01-download_womd.py" \
+    --version "$WOMD_VERSION" \
+    --subset "$WOMD_SUBSET" \
+    --shards "$WOMD_SHARDS" \
+    --dest "$WOMD_DEST"

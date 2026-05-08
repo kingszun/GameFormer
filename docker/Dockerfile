@@ -55,6 +55,20 @@ COPY pyproject.toml uv.lock ./
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-install-project
 
+# KAK-18: aux venv (download only).
+# main venv (gameformer) 의 protobuf<3.20 보존 위해 google-cloud-storage 격리.
+# user OAuth ADC 가 gsutil 에서는 거부되고 python google-cloud-storage 만 동작.
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv venv /opt/venv/gcs --python 3.10 \
+    && uv pip install --python /opt/venv/gcs/bin/python google-cloud-storage
+
+# KAK-17: ssh session 도 venv PATH 받도록.
+# Docker ENV 는 PID 1 만 적용 — sshd 가 fork 한 새 session 은 안 받음.
+# - /etc/environment: PAM 이 모든 session 시작 시 load (login + ssh non-login non-interactive 모두 적용)
+# - /etc/bash.bashrc: interactive bash 추가 보장
+RUN printf 'PATH="/opt/venv/gameformer/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"\n' > /etc/environment \
+    && printf '\nexport PATH=/opt/venv/gameformer/bin:$PATH\n' >> /etc/bash.bashrc
+
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
