@@ -10,6 +10,19 @@ ICCV'23 GameFormer reproduction — torch 2.3.1+cu118 stack, container 기반 (l
 - 시간 표기: `yy-mm-dd-hh:mm:ss`
 - 설계 후 구현 (design-first); 구현 중 설계 변경 필요 시 일단 정지 → 설계 update → review → 재개
 
+### Rules
+
+추가 규칙은 `.claude/rules/` 하위 파일에 정의되어 있다.
+
+- `kck-jira-workflow.md` — jira ticket workflow
+
+### Jira
+
+- project key: `KAK` (https://kingszun.atlassian.net/jira/software/projects/KAK)
+- name: kakao
+- 모든 작업은 KAK 의 ticket 으로 등록 후 commit message 에 `[KAK-N]` 포함
+- 자세한 규칙은 `.claude/rules/kck-jira-workflow.md` 참조
+
 ### 진입 시 먼저 읽을 것
 
 - `docs/00-overview.md` — 프로젝트 목표, 진행 상황, 디렉토리 구조
@@ -26,7 +39,7 @@ ICCV'23 GameFormer reproduction — torch 2.3.1+cu118 stack, container 기반 (l
 - 코드는 image에 포함 안 됨 — host repo를 mount 또는 cloud pod에서 git clone.
 - `data` 는 host symlink (예: `data -> /mnt/e/datasets/womd`). compose가 host에서 resolve 후 container에 bind-mount.
 - WOMD bucket: `gs://waymo_open_dataset_motion_v_1_2_1/` (us-central1).
-- Waymo license + `gcloud auth login` (host) 또는 GCP service account JSON (cloud) 필요.
+- Waymo license + `gcloud auth login` (host) 필요. cloud pod 인증은 host의 user OAuth ADC json (`~/.config/gcloud/application_default_credentials.json`) 복사 — service account는 Waymo bucket ACL 거부 (26-05-08 검증).
 
 ### 자주 쓰는 command
 
@@ -81,7 +94,7 @@ cd interaction_prediction && python -m torch.distributed.launch \
 ### cloud (RunPod) 진행 결정
 
 - 1차: 1×4090 smoke ($0.3, 1~2h)
-- WOMD 인증: GCP service account JSON
+- WOMD 인증: host의 user OAuth ADC json 복사 (`~/.config/gcloud/application_default_credentials.json` → pod로 scp)
 - 코드 전달: git push → cloud pod git clone
 
 세부는 `docs/05-cloud_plan.md`.
