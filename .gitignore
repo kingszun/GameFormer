@@ -1,9 +1,11 @@
 .env
 data
 logs/
+checkpoints/
 training_log/
 testing_log/
 __pycache__/
 *.pyc
 *.pyo
 .venv/
+.claude/scheduled_tasks.lock
