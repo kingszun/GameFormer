@@ -1,0 +1,25 @@
+[project]
+name = "gameformer"
+version = "0.0.0"
+description = "ICCV'23 GameFormer reproduction (torch 2.3.1+cu118 stack)"
+requires-python = ">=3.10,<3.11"
+dependencies = [
+    "numpy<1.24",
+    "protobuf<3.20",
+    "torch==2.3.1+cu118",
+    "tensorflow==2.11.0",
+    "waymo-open-dataset-tf-2-11-0",
+    "shapely",
+    "matplotlib",
+    "tqdm",
+    "pandas",
+    "scipy",
+]
+
+[[tool.uv.index]]
+name = "pytorch-cu118"
+url = "https://download.pytorch.org/whl/cu118"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu118" }

@@ -37,7 +37,11 @@ torch 2.x에서 코드 호환성 문제는 없음 — model code는 plain transf
 
 ```
 GameFormer/
-├── Dockerfile, compose.yaml, .env.example, .dockerignore, .gitignore
+├── compose.yaml, .env.example, .dockerignore, .gitignore
+├── pyproject.toml, uv.lock                (uv 로 dep 관리, KAK-16)
+├── docker/
+│   ├── Dockerfile
+│   └── entrypoint.sh                     (root: PUBLIC_KEY → authorized_keys + sshd start)
 ├── data -> /mnt/e/datasets/womd          (host symlink)
 │   ├── raw/{training_20s,training}/
 │   └── processed/{open_loop,interaction}/{train,valid}/
@@ -46,7 +50,7 @@ GameFormer/
 │   └── README.md
 ├── docs/                                 (이 폴더)
 ├── interaction_prediction/, open_loop_planning/, model/, utils/   (upstream)
-└── requirements.txt                      (upstream — Docker 안 쓰면 참고용)
+└── requirements.txt                      (upstream — pyproject.toml 도입 후 의미 잃음, 참고용)
 ```
 
 ### 다음 작업 지점

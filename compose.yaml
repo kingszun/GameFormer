@@ -5,7 +5,7 @@ services:
     image: ${IMAGE_REPO:-gameformer}:${IMAGE_TAG:-cu118-py310-torch2.3.1}
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: docker/Dockerfile
     container_name: gameformer
     working_dir: /workspace/GameFormer
     user: "${USER_UID:-1000}:${USER_GID:-1000}"
