@@ -36,6 +36,25 @@ upstream GameFormer 코드 대비 변경 사항. 모두 환경 호환성 패치�
 영향:
 - 코드 logic 변화 없음. argparse alias만 추가.
 
+### patch 3 — open_loop_planning/train.py: file_system sharing strategy
+
+|  |  |
+| --- | --- |
+| 파일 | `open_loop_planning/train.py:13~16` |
+| 변경 | import 직후 `torch.multiprocessing.set_sharing_strategy('file_system')` 추가 |
+| ticket | KAK-30 |
+
+배경:
+- DataLoader 가 `num_workers=os.cpu_count()` 로 worker spawn. cloud GPU pod (4090, 128 core) 에서 worker 128개.
+- default sharing strategy `file_descriptor` 는 worker 간 tensor 공유에 fd 사용 → pod 의 ulimit -n 1024 (soft) 한계 초과.
+- 학습 41% 지점에서 `RuntimeError: Too many open files. Communication with the workers is no longer possible` 발생.
+- 3060 host (12 core) 에서는 worker 12개라 1024 안에 들어가서 통과 — cloud 환경에서만 발견.
+
+영향:
+- file_system 전략은 worker 간 tensor 공유에 fd 대신 임시 파일 (`/dev/shm` 또는 `$TMPDIR`) 사용.
+- fd 한계 무관, 추가 의존성 없음, batch 8 size 에선 I/O overhead 무시 가능.
+- 3060 환경에도 동일하게 안전 (file_system 도 정상 동작).
+
 ### 미적용 후보 patch (현재 불필요)
 
 - `torch.distributed.launch` → `torchrun` 전환:
