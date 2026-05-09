@@ -94,7 +94,25 @@ H200 등 cloud GPU에서 full WOMD로 학습. 자세한 내용은 [docs/06-full_
 
 재현 시 hyperparameter는 paper 그대로(batch 16/GPU × 4 GPU, lr 1e-4, epoch 30)를 기준으로 사용. cloud GPU의 VRAM 여유를 활용해 batch를 키운 variant도 별도로 측정 (자세한 내용은 [docs/06-full_training_plan.md](docs/06-full_training_plan.md), [docs/09-evaluation_methodology.md](docs/09-evaluation_methodology.md)).
 
-## 문서 색인
+## 보고서
+
+reproduction 의 종합 보고서는 [docs/report/](docs/report/) 아래.
+
+| 문서 | 내용 |
+| --- | --- |
+| [report/00-summary](docs/report/00-summary.md) | 종합 요약 + 보고서 색인 |
+| [report/01-paper_analysis](docs/report/01-paper_analysis.md) | paper contribution + architecture |
+| [report/02-code_paper_mapping](docs/report/02-code_paper_mapping.md) | paper section ↔ 코드 line 매핑 |
+| [report/03-data_pipeline_meaning](docs/report/03-data_pipeline_meaning.md) | raw 부터 metric 까지 pipeline + paper 적 의미 |
+| [report/04-stack_migration](docs/report/04-stack_migration.md) | torch 1.x → 2.x stack 변경 + 환경 호환성 patch |
+| [report/05-cloud_strategy](docs/report/05-cloud_strategy.md) | cloud GPU 활용 전략 + 비용 최적화 |
+| [report/06-results](docs/report/06-results.md) | smoke + full 학습 결과 + paper baseline 대비 |
+| [report/07-limitations](docs/report/07-limitations.md) | 재현 X 부분 + 향후 작업 |
+| [report/08-original_repo_issues](docs/report/08-original_repo_issues.md) | 원본 repo 발견 이슈 + upstream PR 가능성 |
+
+## 작업 노트
+
+reproduction 진행 중 작성한 작업 노트 (날짜순) 는 [docs/](docs/) 아래:
 
 | 문서 | 내용 |
 | --- | --- |
