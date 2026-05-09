@@ -96,6 +96,21 @@ raw log 보관 정책:
 - jira attachment upload 가능하면 첨부. 안 되면 comment 에 `host file path` + 핵심 발췌 (head/tail 50 line) 포함.
 - pod 등 원격에서 생성한 log 는 `scp` 로 host 에 회수 후 동일 위치 저장.
 
+### 진행 중 milestone sync (In Progress 동안 의무)
+
+ticket `In Progress` 동안 다음 시점에 **즉시 jira comment 추가** (Done 까지 wait 금지):
+
+1. **큰 결정 변경** — pod type/region 변경, plan 변경 (single → multi-pod 등), 새 component (image rebuild) 결정
+2. **실패 발생** — chain abort, process hang, download fail. 원인 + 해결 plan 같이
+3. **재시도** — 첫 시도 fail 후 retry. 무엇이 달라졌는지 명시
+4. **cleanup / sunk cost 결정** — 폐기한 진행분 + 비용 + 이유
+5. **외부 dependency 변경** — pod create/destroy/restart, image push, cred 변경
+6. **의미 있는 측정** — throughput, ETA, file count, 비용 누적 등
+
+원칙: ticket timeline 만 봐도 작업 흐름 reproduce 가능해야. session 재시작 / 다른 사람이 이어가도 context 회복 가능.
+
+**silent progress 금지** — 30분+ 동안 jira update 없이 큰 변경 진행 X. 진행 중이라도 status 보고.
+
 ### Done 시 의무 sync (다중 위치)
 
 ticket Done 전환과 같은 turn 안에 다음을 모두 update — SSOT 유지:
@@ -106,6 +121,14 @@ ticket Done 전환과 같은 turn 안에 다음을 모두 update — SSOT 유지
 - `git add` 변경 file — commit 은 user 지시 시에만 (`kck-git-workflow.md` 준수).
 
 작업 중 발견한 추가 작업/위험은 즉시 신규 ticket 발행 (사후 정리 금지). 발견 ticket comment 에 신규 ticket key 를 link.
+
+### 사용자 지정 원칙 — 한 번 말하면 영구 적용
+
+사용자가 명시한 원칙 / 규칙은 즉시 rule 또는 memory 에 반영하고 이후 모든 작업에 적용. 같은 지적 반복 받지 말 것.
+
+- 새 원칙 발견 시: rule (`.claude/rules/kck-*.md`) 또는 feedback memory 추가
+- 기존 rule 와 충돌 시: 명확히 구분 + 우선순위 명시
+- "예전에 한 번 말했는데" 라는 사용자 피드백 = rule 누락 신호. 즉시 추가.
 
 ### 명령 실행 / log 보존 정책
 

@@ -76,6 +76,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends unzip \
     && /tmp/aws/install \
     && rm -rf /tmp/aws /tmp/awscliv2.zip /var/lib/apt/lists/*
 
+# KAK-55: rclone (cross-cloud sync — pCloud / GCS / S3 통합 wrapper, region lock-in 회피)
+RUN curl -fsSL https://rclone.org/install.sh | bash \
+    && rclone version | head -1
+
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 

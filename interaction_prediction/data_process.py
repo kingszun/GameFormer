@@ -2,6 +2,8 @@ import glob
 import sys
 sys.path.append("..")
 import argparse
+import faulthandler
+import signal
 from multiprocessing import Pool
 import tensorflow as tf
 import numpy as np
@@ -535,13 +537,16 @@ class DataProcess(object):
             self.pbar.close()
 
 def parallel_process(root_dir):
+    faulthandler.register(signal.SIGUSR1, all_threads=True)
     print(root_dir)
-    processor = DataProcess(root_dir=[root_dir], point_dir=point_path, save_dir=save_path) 
+    processor = DataProcess(root_dir=[root_dir], point_dir=point_path, save_dir=save_path)
     processor.process_data(viz=debug,test=test)
     print(f'{root_dir}-done!')
 
 
 if __name__ == "__main__":
+    faulthandler.enable()
+    faulthandler.register(signal.SIGUSR1, all_threads=True)
     parser = argparse.ArgumentParser(description='Data Processing Interaction Predictions')
     parser.add_argument('--load_path', type=str, help='path to dataset files')
     parser.add_argument('--save_path', type=str, help='path to save processed data')
@@ -550,9 +555,14 @@ if __name__ == "__main__":
     parser.add_argument('--debug', action="store_true", help='visualize processed data', default=False)
     parser.add_argument('--test', action="store_true", help='whether to process testing set', default=False)
     parser.add_argument('--use_multiprocessing', action="store_true", help='use multiprocessing', default=False)
-    
+    parser.add_argument('--shard_range', type=str, default='', help='shard range start:end (예: 0:100). 빈 값이면 모든 shard')
+
     args = parser.parse_args()
-    data_files = glob.glob(args.load_path+'/*')
+    data_files = sorted(glob.glob(args.load_path+'/*'))
+    if args.shard_range:
+        start, end = (int(x) if x else None for x in args.shard_range.split(':'))
+        data_files = data_files[start:end]
+        print(f'shard_range {args.shard_range} → {len(data_files)} files')
     save_path = args.save_path
     point_path = args.point_path
     debug = args.debug

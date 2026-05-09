@@ -14,7 +14,7 @@
 #   LEVELS              reasoning levels (default: 4)
 #   NAME                log/checkpoint 이름 (default: Exp1)
 #   DATASET_HOME        data root (host default: /workspace/GameFormer/data, pod default: /workspace/data)
-#   TRAINING_LOG_HOME   train output root (host default: /workspace/GameFormer/training_log, pod default: /workspace/data/runs)
+#   TRAINING_LOG_HOME   train output root (host default: /workspace/GameFormer/training_log, pod default: /workspace/logs/runs)
 #
 # Usage:
 #   bash scripts/06-open_loop_train.sh
@@ -42,9 +42,10 @@ if [ -z "${MODE:-}" ]; then
 fi
 
 # path defaults by MODE (절대 path)
+# KAK-56: pod 의 TRAINING_LOG_HOME 을 /workspace/logs/runs 로 일관 — entrypoint 의 log auto-tail 에 포함
 if [ "$MODE" = "pod" ]; then
     DATASET_HOME="${DATASET_HOME:-/workspace/data}"
-    TRAINING_LOG_HOME="${TRAINING_LOG_HOME:-/workspace/data/runs}"
+    TRAINING_LOG_HOME="${TRAINING_LOG_HOME:-/workspace/logs/runs}"
 else
     DATASET_HOME="${DATASET_HOME:-/workspace/GameFormer/data}"
     TRAINING_LOG_HOME="${TRAINING_LOG_HOME:-/workspace/GameFormer/training_log}"

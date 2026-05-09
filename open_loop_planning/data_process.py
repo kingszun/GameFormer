@@ -4,6 +4,8 @@ sys.path.append("..")
 import glob
 import random
 import argparse
+import faulthandler
+import signal
 import tensorflow as tf
 import numpy as np
 import matplotlib as mpl
@@ -447,11 +449,14 @@ class DataProcess(object):
 
 
 def multiprocessing(data_files):
-    processor = DataProcess([data_files]) 
+    faulthandler.register(signal.SIGUSR1, all_threads=True)
+    processor = DataProcess([data_files])
     processor.process_data(save_path, viz=False)
 
 
 if __name__ == "__main__":
+    faulthandler.enable()
+    faulthandler.register(signal.SIGUSR1, all_threads=True)
     # Arguments
     parser = argparse.ArgumentParser(description='Data Processing')
     parser.add_argument('--load_path', type=str, help='path to dataset files')
@@ -459,9 +464,14 @@ if __name__ == "__main__":
     parser.add_argument('--debug', action="store_true", help='visualize processed data', default=False)
     parser.add_argument('--use_multiprocessing', action="store_true", help='use multiprocessing', default=False)
     parser.add_argument('--processes', type=int, default=None, help='Pool processes (default: os.cpu_count())')
+    parser.add_argument('--shard_range', type=str, default='', help='shard range start:end (예: 0:100). 빈 값이면 모든 shard')
 
     args = parser.parse_args()
-    data_files = glob.glob(args.load_path+'/*')
+    data_files = sorted(glob.glob(args.load_path+'/*'))
+    if args.shard_range:
+        start, end = (int(x) if x else None for x in args.shard_range.split(':'))
+        data_files = data_files[start:end]
+        print(f'shard_range {args.shard_range} → {len(data_files)} files')
     save_path = args.save_path
     os.makedirs(save_path, exist_ok=True)
 
