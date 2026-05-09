@@ -487,7 +487,14 @@ class DataProcess(object):
                     self.interactive_process(tracks_list, interact_list, parsed_data.tracks)
 
                 for pairs in self.sdc_ids_list:
-                    sdc_ids, interesting = pairs[0], pairs[1]                   
+                    sdc_ids, interesting = pairs[0], pairs[1]
+
+                    # KAK-44 skip: 이미 생성된 file 은 건너뛰기 (multi-pod resume 대응)
+                    inter = 'interest' if interesting==1 else 'r'
+                    filename = self.save_dir + f"/{scenario_id}_{sdc_ids[0]}_{sdc_ids[1]}_{inter}.npz"
+                    if os.path.exists(filename):
+                        continue
+
                     # process data
                     ego = self.ego_process(sdc_ids, parsed_data.tracks)
 
@@ -513,9 +520,7 @@ class DataProcess(object):
 
                     if self.point_dir == '':
                         region_dict = {6:np.zeros((6,2))}
-                    # save data
-                    inter = 'interest' if interesting==1 else 'r'
-                    filename = self.save_dir + f"/{scenario_id}_{sdc_ids[0]}_{sdc_ids[1]}_{inter}.npz"
+                    # save data (filename 은 위 skip check 에서 정의됨)
                     if test:
                         np.savez(filename, ego=np.array(ego), neighbors=np.array(neighbors), map_lanes=np.array(map_lanes), 
                         map_crosswalks=np.array(map_crosswalks),object_type=np.array(object_type),region_6=np.array(region_dict[6]),
