@@ -110,11 +110,11 @@ for ((bs=0; bs < TOTAL; bs += BATCH_SHARDS)); do
     [ $be -gt $TOTAL ] && be=$TOTAL
     BATCH_IDX=$((BATCH_IDX + 1))
     GLOBAL_BS=$((S_START + bs))
-    GLOBAL_BE=$((S_START + be))
-    BATCH_TAG="${SUBSET}_b$(printf '%04d' $GLOBAL_BS)_$(printf '%04d' $GLOBAL_BE)"
+    GLOBAL_BE_INCL=$((S_START + be - 1))
+    BATCH_TAG="${SUBSET}_b$(printf '%04d' $GLOBAL_BS)_$(printf '%04d' $GLOBAL_BE_INCL)"
     BATCH_START=$(date +%s)
     echo
-    echo "[$(ts)] -- batch $BATCH_IDX: local shards $bs:$be (global $GLOBAL_BS:$GLOBAL_BE) --"
+    echo "[$(ts)] -- batch $BATCH_IDX: local shards $bs:$be (global $GLOBAL_BS-$GLOBAL_BE_INCL inclusive) --"
 
     # 2.1 preprocess (container disk) + heartbeat (30s 간격 진척 main log 에)
     PREPROC_LOG=$LOG_PATH/preprocess_${BATCH_TAG}.log
