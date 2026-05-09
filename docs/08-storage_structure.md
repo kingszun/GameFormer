@@ -5,9 +5,9 @@ GameFormer project 의 data 가 보관되는 위치 + lifecycle + 사용 패턴 
 | storage | 위치 | persistent | 사용 |
 |---|---|---|---|
 | host symlink | `data -> /mnt/e/datasets/womd` | host disk | local 3060 학습 |
-| RunPod network volume | `svnweu0of5` (US-IL-1, 1024 GB) | ✓ | cloud preprocess + 학습 입력 |
+| RunPod network volume | `svnweu0of5` (US-IL-1, 1024 GB) | yes | cloud preprocess + 학습 입력 |
 | RunPod container disk | pod local (RTX 3090 = 1204 GB, CPU pod = 20 GB) | pod 까지 | preprocess 중간 결과, prefetch raw, log |
-| 외부 cloud (pCloud) | `06_Datasets/gameformer/` (US, 7.5 TB total) | ✓ RunPod 와 무관 | backup, region 자유 학습, lock-in 회피 |
+| 외부 cloud (pCloud) | `06_Datasets/gameformer/` (US, 7.5 TB total) | yes; RunPod 와 무관 | backup, region 자유 학습, lock-in 회피 |
 
 이 doc는 GameFormer reproduction 환경의 storage 구조 + multi-pod 분산 시 contention 회피 방법을 다룬다.
 

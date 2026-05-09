@@ -9,10 +9,10 @@ ICCV'23 GameFormer paper의 학습 path를 현대 환경(PyTorch 2.x + CUDA 11.8
 
 | 작업 | 상태 |
 | --- | --- |
-| open_loop_planning 학습 path 동작 확인 (3060, 1 epoch smoke) | done |
-| interaction_prediction 학습 path 동작 확인 (3060 single-GPU DDP, 1 epoch smoke) | done |
-| 환경 이식 (torch 1.12+cu116 → torch 2.3.1+cu118) | done |
-| Docker container 기반 재현 환경 구성 | done |
+| open_loop_planning 학습 path 동작 확인 (3060, 1 epoch smoke) | yes |
+| interaction_prediction 학습 path 동작 확인 (3060 single-GPU DDP, 1 epoch smoke) | yes |
+| 환경 이식 (torch 1.12+cu116 → torch 2.3.1+cu118) | yes |
+| Docker container 기반 재현 환경 구성 | yes |
 | 클라우드 GPU(H200)로 full-scale 학습 | 진행 중 |
 
 원본 repo 가 제공하지 않는 부분:

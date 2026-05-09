@@ -24,13 +24,13 @@ torch 2.x에서 코드 호환성 문제는 없음 — model code는 plain transf
 
 | 단계 | 상태 | 비고 |
 | --- | --- | --- |
-| Docker image build (local) | done | `gameformer:cu118-py310-torch2.3.1`, 5 GB |
-| Docker Hub push | done | `docker.io/kingszun/gameformer:cu118-py310-torch2.3.1` |
-| WOMD subset download (host) | done | training_20s 2 shards (164 MB), training 2 shards (886 MB) |
-| open_loop_planning preprocess | done | 3610 .npz, 1.8 GB |
-| open_loop_planning train (1 epoch, 3060) | done | loss 91 → 48 |
-| interaction_prediction preprocess | done | 8518 .npz, 2.2 GB |
-| interaction_prediction train (1 epoch, 3060 single-GPU DDP) | done | loss 22000 → 109, val_loss 109 |
+| Docker image build (local) | yes | `gameformer:cu118-py310-torch2.3.1`, 5 GB |
+| Docker Hub push | yes | `docker.io/kingszun/gameformer:cu118-py310-torch2.3.1` |
+| WOMD subset download (host) | yes | training_20s 2 shards (164 MB), training 2 shards (886 MB) |
+| open_loop_planning preprocess | yes | 3610 .npz, 1.8 GB |
+| open_loop_planning train (1 epoch, 3060) | yes | loss 91 → 48 |
+| interaction_prediction preprocess | yes | 8518 .npz, 2.2 GB |
+| interaction_prediction train (1 epoch, 3060 single-GPU DDP) | yes | loss 22000 → 109, val_loss 109 |
 | Cloud (RunPod) 1×4090 smoke | pending | 다음 단계 |
 
 ### 디렉토리 구조
