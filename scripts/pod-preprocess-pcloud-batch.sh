@@ -172,8 +172,9 @@ for ((bs=0; bs < TOTAL; bs += BATCH_SHARDS)); do
     fi
     echo "[$(ts)] upload + verify ✓ — pcloud batch size $(numfmt --to=iec $DST_BATCH_SIZE)"
 
-    # 2.4 cleanup batch
-    rm -rf $SAVE_PATH/* $TAR_DIR
+    # 2.4 cleanup batch (find -delete 로 ARG_MAX 회피 — 200k+ small file 안전)
+    find $SAVE_PATH -mindepth 1 -delete
+    rm -rf $TAR_DIR
     BATCH_END=$(date +%s)
     echo "[$(ts)] cleanup done — batch $BATCH_IDX total $((BATCH_END - BATCH_START))s"
     df -h / | tail -1
