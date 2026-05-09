@@ -2,7 +2,7 @@
 set -e
 ulimit -n 65536
 
-LOGS=/workspace/logs
+LOGS=/workspace/logs/$(hostname)
 mkdir -p $LOGS
 S3_OPTS="--region us-il-1 --endpoint-url https://s3api-us-il-1.runpod.io --profile runpod"
 S3_BUCKET=svnweu0of5

@@ -37,12 +37,12 @@ SCP="scp -i $HOME/.runpod/ssh/RunPod-Key-Go -o StrictHostKeyChecking=no -P $SSH_
 echo "[$(ts)] rclone 확인 + config scp"
 $SSH "
 which rclone > /dev/null 2>&1 || (apt update && apt install -y rclone)
-mkdir -p /root/.config/rclone /workspace/logs
+mkdir -p /root/.config/rclone /workspace/logs/\$(hostname)
 "
 $SCP $HOME/.config/rclone/rclone.conf root@$SSH_IP:/root/.config/rclone/rclone.conf
 $SSH "rclone listremotes | grep -q '^pcloud:' || { echo 'pcloud remote 없음 — host config 확인'; exit 1; }"
 
-LOG=/workspace/logs/rclone_download_${TAG}_$(date +%y%m%d_%H%M%S).log
+LOG=/workspace/logs/$(hostname)/rclone_download_${TAG}_$(date +%y%m%d_%H%M%S).log
 STDOUT=${LOG}.stdout
 
 echo "[$(ts)] background rclone copy 시작 (transfers=$TRANSFERS)"

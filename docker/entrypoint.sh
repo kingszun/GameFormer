@@ -13,10 +13,12 @@ if [ "$(id -u)" = "0" ]; then
     /usr/sbin/sshd 2>/dev/null || true
 fi
 
-# KAK-56: auto-tail /workspace/logs/**/*.log (recursive) to entrypoint stdout
-# RunPod web UI 의 Container log tab 에서 작업 진행 상황 확인 가능
-# nested directory (예: runs/<name>/train.log) 도 watch
-mkdir -p /workspace/logs
+# KAK-56: auto-tail /workspace/logs/$(hostname)/**/*.log (per-pod) to entrypoint stdout
+# 같은 network volume 을 multi-pod mount 시 다른 pod 의 log 를 stream 하지 않도록 hostname prefix 격리.
+# pod 안 모든 작업이 /workspace/logs/$(hostname)/ 안에 log 작성하도록 LOGS env 일관.
+LOGS_DIR=/workspace/logs/$(hostname)
+mkdir -p $LOGS_DIR
+echo "===== ENTRYPOINT: log dir = $LOGS_DIR (hostname=$(hostname)) ====="
 {
     declare -A TAILED
     while true; do
@@ -26,7 +28,7 @@ mkdir -p /workspace/logs
                 TAILED[$f]=1
                 ( echo "===== TAIL START: $f ====="; tail -n 0 -F "$f" 2>/dev/null ) &
             fi
-        done < <(find /workspace/logs -type f -name '*.log' 2>/dev/null)
+        done < <(find $LOGS_DIR -type f -name '*.log' 2>/dev/null)
         sleep 5
     done
 } &
