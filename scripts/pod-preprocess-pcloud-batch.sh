@@ -109,12 +109,14 @@ for ((bs=0; bs < TOTAL; bs += BATCH_SHARDS)); do
     be=$((bs + BATCH_SHARDS))
     [ $be -gt $TOTAL ] && be=$TOTAL
     BATCH_IDX=$((BATCH_IDX + 1))
-    BATCH_TAG="${SUBSET}_b$(printf '%04d' $bs)_$(printf '%04d' $be)"
+    GLOBAL_BS=$((S_START + bs))
+    GLOBAL_BE=$((S_START + be))
+    BATCH_TAG="${SUBSET}_b$(printf '%04d' $GLOBAL_BS)_$(printf '%04d' $GLOBAL_BE)"
     BATCH_START=$(date +%s)
     echo
-    echo "[$(ts)] -- batch $BATCH_IDX: local shards $bs:$be --"
+    echo "[$(ts)] -- batch $BATCH_IDX: local shards $bs:$be (global $GLOBAL_BS:$GLOBAL_BE) --"
 
-    # 2.1 preprocess (container disk)
+    # 2.1 preprocess (container disk) + heartbeat (30s 간격 진척 main log 에)
     PREPROC_LOG=$LOG_PATH/preprocess_${BATCH_TAG}.log
     cd /workspace/GameFormer/$cwd
     BEFORE=$(find $SAVE_PATH -type f -name '*.npz' 2>/dev/null | wc -l)
@@ -124,7 +126,23 @@ for ((bs=0; bs < TOTAL; bs += BATCH_SHARDS)); do
         --use_multiprocessing \
         --processes $WORKERS \
         --shard_range $bs:$be \
-        > $PREPROC_LOG 2>&1 || abort "$BATCH_TAG preprocess failed (log: $PREPROC_LOG)"
+        > $PREPROC_LOG 2>&1 &
+    PYTHON_PID=$!
+    PRE_HEARTBEAT_FC=$BEFORE
+    HEARTBEAT_START=$(date +%s)
+    while kill -0 $PYTHON_PID 2>/dev/null; do
+        sleep 30
+        kill -0 $PYTHON_PID 2>/dev/null || break
+        NOW_FC=$(find $SAVE_PATH -type f -name '*.npz' 2>/dev/null | wc -l)
+        DELTA=$((NOW_FC - PRE_HEARTBEAT_FC))
+        ELAPSED=$(($(date +%s) - HEARTBEAT_START))
+        ALIVE=$(pgrep -P $PYTHON_PID | wc -l)
+        echo "[$(ts)] $BATCH_TAG progress — total $((NOW_FC - BEFORE)) files (last 30s +$DELTA, ${ELAPSED}s elapsed, alive worker $ALIVE)"
+        PRE_HEARTBEAT_FC=$NOW_FC
+    done
+    wait $PYTHON_PID
+    RET=$?
+    [ $RET -eq 0 ] || abort "$BATCH_TAG preprocess failed exit=$RET (log: $PREPROC_LOG)"
     AFTER=$(find $SAVE_PATH -type f -name '*.npz' | wc -l)
     BATCH_FC=$((AFTER - BEFORE))
     [ "$BATCH_FC" -gt 0 ] || abort "$BATCH_TAG produced 0 files"
@@ -140,8 +158,7 @@ for ((bs=0; bs < TOTAL; bs += BATCH_SHARDS)); do
     TAR_SIZE=$(find $TAR_DIR -type f -printf '%s\n' | awk '{s+=$1} END {printf "%.0f\n", s}')
     echo "[$(ts)] tar+split done — $CHUNK_COUNT chunks, $(numfmt --to=iec $TAR_SIZE)"
 
-    # 2.3 upload + size verify (pre/post pcloud diff = tar size)
-    PRE_PCLOUD=$(rclone size pcloud:$PCLOUD_DST --json 2>/dev/null | python3 -c 'import json,sys; print(json.load(sys.stdin).get("bytes",0))' 2>/dev/null || echo 0)
+    # 2.3 upload + size verify (이 batch 의 chunk 만 매칭 — concurrent multi-pod 안전)
     UPLOAD_LOG=$LOG_PATH/rclone_upload_${BATCH_TAG}.log
     rclone copy $TAR_DIR pcloud:$PCLOUD_DST \
         --transfers $TRANSFERS \
@@ -149,12 +166,11 @@ for ((bs=0; bs < TOTAL; bs += BATCH_SHARDS)); do
         --buffer-size 64M \
         --stats 30s \
         --log-file $UPLOAD_LOG --log-level INFO || abort "$BATCH_TAG upload failed (log: $UPLOAD_LOG)"
-    POST_PCLOUD=$(rclone size pcloud:$PCLOUD_DST --json 2>/dev/null | python3 -c 'import json,sys; print(json.load(sys.stdin).get("bytes",0))' 2>/dev/null || echo 0)
-    DIFF=$((POST_PCLOUD - PRE_PCLOUD))
-    if [ "$DIFF" != "$TAR_SIZE" ]; then
-        abort "$BATCH_TAG size MISMATCH — tar=$TAR_SIZE pcloud_diff=$DIFF (cleanup 안 함, 수동 확인 필요)"
+    DST_BATCH_SIZE=$(rclone size pcloud:$PCLOUD_DST --include "${BATCH_TAG}.tar.part_*" --json 2>/dev/null | python3 -c 'import json,sys; print(json.load(sys.stdin).get("bytes",0))' 2>/dev/null || echo 0)
+    if [ "$DST_BATCH_SIZE" != "$TAR_SIZE" ]; then
+        abort "$BATCH_TAG size MISMATCH — local_tar=$TAR_SIZE pcloud_batch=$DST_BATCH_SIZE (cleanup 안 함, 수동 확인 필요)"
     fi
-    echo "[$(ts)] upload + verify ✓ — diff=$(numfmt --to=iec $DIFF)"
+    echo "[$(ts)] upload + verify ✓ — pcloud batch size $(numfmt --to=iec $DST_BATCH_SIZE)"
 
     # 2.4 cleanup batch
     rm -rf $SAVE_PATH/* $TAR_DIR
