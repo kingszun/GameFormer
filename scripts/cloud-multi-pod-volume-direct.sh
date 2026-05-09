@@ -77,7 +77,7 @@ else
 fi
 "
 
-    # 2. background launch
+    # 2. background launch (SUBSETS env override 가능)
     ssh $SSH_OPTS root@$SSH_IP "
 nohup env \
     SHARD_TRAIN_INT='$R_TRAIN_INT' \
@@ -85,10 +85,11 @@ nohup env \
     SHARD_VALID_INT='$R_VALID_INT' \
     SHARD_VALID_OL='$R_VALID_OL' \
     WORKERS=$WORKERS \
+    ${SUBSETS:+SUBSETS=\"$SUBSETS\"} \
     bash /workspace/GameFormer/scripts/pod-preprocess-volume-direct.sh \
-    > /workspace/logs/\$(hostname)/volume_direct_pod${i}.log 2>&1 &
+    > \$LOG_PATH/volume_direct_pod${i}.log 2>&1 &
 PID=\$!
-echo \"  PID: \$PID\"
+echo \"  PID: \$PID, LOG: \$LOG_PATH/volume_direct_pod${i}.log\"
 sleep 3
 ps -p \$PID > /dev/null 2>&1 && echo '  alive ✓' || echo '  DIED!'
 "
