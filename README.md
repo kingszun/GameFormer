@@ -103,6 +103,7 @@ reproduction 의 종합 보고서는 [docs/report/](docs/report/) 아래.
 | [report/00-summary](docs/report/00-summary.md) | 종합 요약 + 보고서 색인 |
 | [report/01-paper_analysis](docs/report/01-paper_analysis.md) | paper contribution + architecture |
 | [report/02-code_paper_mapping](docs/report/02-code_paper_mapping.md) | paper section ↔ 코드 line 매핑 |
+| [report/02b-interaction_vs_open_loop](docs/report/02b-interaction_vs_open_loop.md) | interaction vs open_loop 차이 + game-theoretic 설계 (ASCII flow) |
 | [report/03-data_pipeline_meaning](docs/report/03-data_pipeline_meaning.md) | raw 부터 metric 까지 pipeline + paper 적 의미 |
 | [report/04-stack_migration](docs/report/04-stack_migration.md) | torch 1.x → 2.x stack 변경 + 환경 호환성 patch |
 | [report/05-cloud_strategy](docs/report/05-cloud_strategy.md) | cloud GPU 활용 전략 + 비용 최적화 |

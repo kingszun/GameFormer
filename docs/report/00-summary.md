@@ -12,6 +12,7 @@ ICCV'23 GameFormer paper 의 학습 path 를 현대 환경 (PyTorch 2.x + CUDA 1
 | [00-summary](00-summary.md) | 본 문서 — 종합 요약 + 보고서 구조 |
 | [01-paper_analysis](01-paper_analysis.md) | paper 의 contribution + architecture + 핵심 개념 |
 | [02-code_paper_mapping](02-code_paper_mapping.md) | paper section ↔ 코드 line 매핑 (`model/` 중심) |
+| [02b-interaction_vs_open_loop](02b-interaction_vs_open_loop.md) | 두 task 의 차이 + game-theoretic joint reasoning 설계 (ASCII flow) |
 | [03-data_pipeline_meaning](03-data_pipeline_meaning.md) | raw tfrecord 부터 metric 까지 각 단계의 paper 적 의미 |
 | [04-stack_migration](04-stack_migration.md) | torch 1.x → 2.x stack 변경 + 4 환경 호환성 patch |
 | [05-cloud_strategy](05-cloud_strategy.md) | cloud GPU (RunPod / pCloud) 활용 전략, 비용 최적화 |
