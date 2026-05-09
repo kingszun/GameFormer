@@ -43,7 +43,7 @@ paper dataset 명세:
 
 | 항목 | 값 | 출처 |
 | --- | --- | --- |
-| script | `IN_POD=1 BATCH_SIZE=64 EPOCHS=20 LR=2e-4 NAME=op_full bash scripts/06-open_loop_train.sh` | KAK-33 |
+| script | `IN_POD=1 BATCH_SIZE=64 EPOCHS=20 LR=2e-4 NAME=op_full bash scripts/local/06-open_loop_train.sh` | KAK-33 |
 | epoch | 20 | paper |
 | batch_size | 64 (paper 32 의 2x — sqrt lr scaling 보정 가능 범위) | user B |
 | learning_rate | 2e-4 (sqrt scaling 1.4e-4 의 round-up) | user B |
@@ -140,7 +140,7 @@ us-il-1 에 H100 부족 시 옵션:
 진행 chain:
 1. KAK-31: GCS → host download (진행 중, ~3시간 ETA)
 2. KAK-19: host → RunPod volume S3 endpoint push
-3. preprocess: pod 안에서 `scripts/05-open_loop_preprocess.sh` (open_loop) + `scripts/07-interaction_preprocess.sh` (interaction, 신규 script 필요)
+3. preprocess: pod 안에서 `scripts/local/05-open_loop_preprocess.sh` (open_loop) + `scripts/07-interaction_preprocess.sh` (interaction, 신규 script 필요)
 4. 본격 학습 진입
 
 preprocess output 크기:

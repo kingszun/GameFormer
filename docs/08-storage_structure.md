@@ -49,10 +49,10 @@ pcloud:06_Datasets/gameformer/
 #### upload 패턴
 
 ```
-scripts/cloud-rclone-upload.sh <pod_id> /workspace/data/processed/open_loop/valid 06_Datasets/gameformer/processed/open_loop/valid
+scripts/cloud/transfer/cloud-rclone-upload.sh <pod_id> /workspace/data/processed/open_loop/valid 06_Datasets/gameformer/processed/open_loop/valid
 ```
 
-자세한 사용은 `scripts/cloud-rclone-upload.sh` 의 header.
+자세한 사용은 `scripts/cloud/transfer/cloud-rclone-upload.sh` 의 header.
 
 ---
 
@@ -186,7 +186,7 @@ local 개발 + 3060 smoke + cloud setup 의 source.
 
 - 코드: git push → pod 에서 git clone (또는 scp 변경 file)
 - WOMD ADC: host ADC → pod scp (`~/.config/gcloud/application_default_credentials.json`)
-- rclone config: host `~/.config/rclone/rclone.conf` → pod scp (`scripts/cloud-rclone-upload.sh` 가 자동)
+- rclone config: host `~/.config/rclone/rclone.conf` → pod scp (`scripts/cloud/transfer/cloud-rclone-upload.sh` 가 자동)
 - ssh key: host `~/.runpod/ssh/RunPod-Key-Go` (private), `.pub` (PUBLIC_KEY env 로 pod entrypoint 에서 authorized_keys 생성)
 
 ---
@@ -240,13 +240,13 @@ rclone listremotes      # pcloud: 보여야 함
 rclone about pcloud:    # 7.488 TiB total 보여야 함
 ```
 
-자동화: `scripts/cloud-rclone-upload.sh` 가 자동 진행 (config scp + 검증 포함).
+자동화: `scripts/cloud/transfer/cloud-rclone-upload.sh` 가 자동 진행 (config scp + 검증 포함).
 
 #### 6.2. upload (pod → pCloud)
 
 ```
 # 단순 (host 에서 wrapper 호출)
-scripts/cloud-rclone-upload.sh <pod_id> /workspace/data/processed/X 06_Datasets/gameformer/processed/X
+scripts/cloud/transfer/cloud-rclone-upload.sh <pod_id> /workspace/data/processed/X 06_Datasets/gameformer/processed/X
 
 # 또는 pod 안 직접 (background + log)
 nohup rclone copy /workspace/data/processed/X pcloud:06_Datasets/gameformer/processed/X \
@@ -338,5 +338,5 @@ runpodctl pod remove <h100-pod>
 - `docs/01-environment.md` — Docker / compose stack
 - `docs/05-cloud_plan.md` — RunPod 진행 plan
 - `docs/07-data_pipeline.md` — preprocess 의 데이터 흐름 + subset 별 상세
-- `scripts/cloud-rclone-upload.sh` — pod → pCloud sync wrapper
-- `scripts/preprocess_chain_v3.sh` — chain script (heartbeat + stall watchdog)
+- `scripts/cloud/transfer/cloud-rclone-upload.sh` — pod → pCloud sync wrapper
+- `scripts/cloud/preprocess/preprocess_chain_v3.sh` — chain script (heartbeat + stall watchdog)

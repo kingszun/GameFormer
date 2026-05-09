@@ -1,111 +1,154 @@
 ## scripts
 
-GameFormer 재현용 자동화 script. 번호 순서대로 1회씩 실행하면 환경 구성부터 학습까지 진행된다.
+GameFormer 재현용 자동화 script. 용도별로 folder 구분.
 
-### 실행 환경 분리
+```
+scripts/
+├── README.md                       # this file
+├── local/                          # host docker compose smoke (3060 등)
+│   ├── 01-download_womd.{py,sh}    # WOMD shard download (gsutil ADC)
+│   ├── 02-build_image.sh           # docker image build
+│   ├── 03-up.sh                    # container 기동
+│   ├── 04-smoke_test.sh            # CUDA + waymo proto 검증
+│   ├── 05-open_loop_preprocess.sh  # tfrecord → npz
+│   ├── 06-open_loop_train.sh       # open_loop 학습 (host docker compose)
+│   └── 99-down.sh                  # container 종료
+└── cloud/                          # cloud (RunPod) 작업
+    ├── preprocess/                 # preprocessing chain (host → pCloud)
+    │   ├── pod-preprocess-pcloud-batch.sh    # KAK-57: 8 pod 분산 preprocess + pCloud upload
+    │   ├── pod-preprocess-interaction-batch.sh
+    │   ├── pod-preprocess-volume-direct.sh
+    │   ├── pod-pipeline-h200-single.sh       # single H200 pod chain (download wait + untar + preprocess)
+    │   ├── preprocess_chain_v3.sh            # KAK-44: validation chain
+    │   └── cloud-multi-pod-{interaction,volume-direct}.sh  # orchestrators
+    ├── transfer/                   # data transfer (rclone, pCloud public download)
+    │   ├── pcloud-public-download.py   # NEW: pCloud public link parallel download (auth 필요 X)
+    │   ├── cloud-rclone-{download,upload}.sh   # rclone (pCloud OAuth)
+    │   └── cloud-tar-upload-cleanup.sh
+    └── train/                      # 학습 launcher (pod 안에서 실행)
+        ├── pod-train-from-scratch-open-loop.sh    # NEW: pCloud public + untar + train (auth X)
+        ├── pod-train-from-scratch-interaction.sh  # NEW: 동일 (interaction, DDP)
+        ├── pod-train-open-loop.sh         # rclone (auth) 버전 — chain after rclone done
+        └── pod-train-interaction.sh        # 동일 (interaction, DDP)
+```
 
-- 호스트 실행: `01-download_womd.sh`, `02-build_image.sh`, `03-up.sh`, `99-down.sh` — host에서 직접
-- 컨테이너 실행: `04-smoke_test.sh`, `05-open_loop_preprocess.sh`, `06-open_loop_train.sh` — host에서 호출하지만 내부적으로 `docker compose exec`로 컨테이너에 진입
+### local/ — 호스트 docker compose smoke
 
-### 사전 준비 (1회)
+3060 12GB 등 host 에서 docker compose 로 1~2 shard 학습 path 동작 검증.
 
-호스트에 다음이 갖춰져 있어야 한다.
+#### 사전 준비 (1회)
 
-- `docker` (compose v2 포함), `nvidia-container-toolkit`
+- `docker` (compose v2), `nvidia-container-toolkit`
 - `google-cloud-cli` (`gsutil`, `gcloud`) — 01번 script 전제
-- Waymo Open Dataset license 동의 (https://waymo.com/open/licensing/) + `gcloud auth login` 으로 동일 계정 인증
-- `data` symlink가 dataset 저장 host 경로를 가리켜야 함. 예시:
+- Waymo Open Dataset license + `gcloud auth login`
+- `data` symlink:
 
 ```
 DATASET_HOST_PATH=/mnt/e/datasets/womd
 mkdir -p $DATASET_HOST_PATH
 ln -s $DATASET_HOST_PATH ./data
-```
-
-- `.env` 생성:
-
-```
 cp .env.example .env
 ```
 
-### script 목록과 실행 순서
-
-| 순서 | script | 실행 위치 | 목적 | 주요 env var |
-| --- | --- | --- | --- | --- |
-| 01 | `01-download_womd.sh` | host | WOMD scenario tfrecord 일부 shard download | `WOMD_VERSION`, `WOMD_SUBSET`, `WOMD_SHARDS`, `WOMD_DEST` |
-| 02 | `02-build_image.sh` | host | docker image build (`gameformer:cu118-py310-torch2.3.1`) | `IMAGE_REPO`, `IMAGE_TAG` (.env) |
-| 03 | `03-up.sh` | host | container 기동 (`sleep infinity`로 상주) | `DOCKER_GPUS`, `USER_UID/GID`, `DATASET_HOME` (.env) |
-| 04 | `04-smoke_test.sh` | container | torch CUDA + GPU matmul + waymo proto import 검증 | - |
-| 05 | `05-open_loop_preprocess.sh` | container | tfrecord -> .npz preprocess | `WOMD_SUBSET`, `SPLIT` |
-| 06 | `06-open_loop_train.sh` | container | open_loop_planning 학습 | `BATCH_SIZE`, `EPOCHS`, `LR`, `LEVELS`, `NAME`, `TRAIN_SPLIT`, `VALID_SPLIT` |
-| 99 | `99-down.sh` | host | container 종료 (image/volume 보존) | - |
-
-### 일반 실행 흐름 (smoke test)
-
-3060 12GB 기준 최소 검증 흐름. WOMD validation 1~2 shard로 학습 path 동작만 확인.
+#### 실행 흐름 (smoke test)
 
 ```
-WOMD_SUBSET=training_20s WOMD_SHARDS=2 bash scripts/01-download_womd.sh
-bash scripts/02-build_image.sh
-bash scripts/03-up.sh
-bash scripts/04-smoke_test.sh
-bash scripts/05-open_loop_preprocess.sh
-BATCH_SIZE=8 EPOCHS=1 bash scripts/06-open_loop_train.sh
+WOMD_SUBSET=training_20s WOMD_SHARDS=2 bash scripts/local/01-download_womd.sh
+bash scripts/local/02-build_image.sh
+bash scripts/local/03-up.sh
+bash scripts/local/04-smoke_test.sh
+bash scripts/local/05-open_loop_preprocess.sh
+BATCH_SIZE=8 EPOCHS=1 bash scripts/local/06-open_loop_train.sh
 ```
 
-### H200 서버 이식
-
-같은 image, 같은 compose, 같은 script. 차이는 `.env` 와 batch/epoch override만.
-
-```
-git clone <repo> && cd GameFormer
-ln -s /path/to/dataset/on/h200/host ./data
-cp .env.example .env
-bash scripts/02-build_image.sh
-bash scripts/03-up.sh
-WOMD_SHARDS=all bash scripts/01-download_womd.sh
-bash scripts/05-open_loop_preprocess.sh
-BATCH_SIZE=64 EPOCHS=20 NAME=run01 bash scripts/06-open_loop_train.sh
-```
-
-### env var 우선순위
-
-각 script는 다음 순서로 설정값을 결정한다.
-
-1. command line 앞에 붙인 env (예: `BATCH_SIZE=32 bash scripts/06-...sh`)
-2. shell session에 export된 값
-3. script 내부 default
-
-`.env` 파일은 docker compose가 host -> container env 주입 시 사용. script 자체의 동작 (batch_size 등)은 `.env`로 덮이지 않으므로 위 1, 2번 방식 사용.
-
-### 산출물 위치
+#### 산출물 위치 (local)
 
 - raw tfrecord: `data/raw/${WOMD_SUBSET}/`
 - preprocessed npz: `data/processed/open_loop/${SPLIT}/`
 - training log/checkpoint: `open_loop_planning/training_log/${NAME}/`
 
-### 자주 쓰는 보조 command
+### cloud/ — RunPod 학습 workflow
 
-container shell 진입:
+본격 학습 (full WOMD, H200/H100). data 가 이미 pCloud 에 preprocess + tar+split 으로 올라가 있다고 가정.
 
-```
-docker compose exec gameformer bash
-```
+#### pCloud public share codes (KAK-57, no auth)
 
-GPU 사용량 모니터:
+| subset | code | files | size | path |
+|---|---|---|---|---|
+| open_loop/train_tar | `p3vctalK` | 45 | 323 GiB | `pcloud:06_Datasets/gameformer/processed/open_loop/train_tar/` |
+| open_loop/valid_tar | `zaM7` | 19 | 147 GiB | `pcloud:.../open_loop/valid_tar/` |
+| interaction/train_tar | `kt4` | 147 | 1135 GiB | `pcloud:.../interaction/train_tar/` |
+| interaction/valid_tar | `SYpctalK` | 4 | 23 GiB | `pcloud:.../interaction/valid_tar/` |
 
-```
-docker compose exec gameformer nvidia-smi
-```
+short link: `http://u.pc.cd/<code>` (예: `http://u.pc.cd/kt4`)
 
-container 재시작 (코드만 수정한 경우):
+#### 학습 시작 (pCloud public, auth X)
 
-```
-docker compose restart
-```
-
-image 재빌드 (Dockerfile 수정 시):
+RunPod pod (H200 등) 에서 `git clone https://github.com/kingszun/GameFormer` 후:
 
 ```
-bash scripts/02-build_image.sh --no-cache
+# open_loop (1×H200)
+nohup bash scripts/cloud/train/pod-train-from-scratch-open-loop.sh > /workspace/logs/launch.log 2>&1 &
+
+# interaction (4×H200 DDP)
+nohup bash scripts/cloud/train/pod-train-from-scratch-interaction.sh > /workspace/logs/launch.log 2>&1 &
 ```
+
+기본 환경 변수 (override 가능):
+
+| script | BATCH_SIZE | EPOCHS | LR | NPROC | WORKERS | NAME |
+|---|---|---|---|---|---|---|
+| open_loop | 128 | 20 | 2.83e-4 | 1 | 8 | op_full |
+| interaction | 64/GPU | 30 | 2e-4 | 4 | 16 | ip_full |
+
+paper baseline (batch 32 lr 1e-4) 대비 sqrt scaling 적용 (paper deviation acceptable, KAK-34 v0.3).
+
+각 script 의 chain step:
+1. pCloud public download (transfers per default)
+2. parallel untar (xargs -P 64)
+3. cleanup tar dirs
+4. launch training (background, PID 저장)
+
+#### Helper: pcloud-public-download.py
+
+pCloud public link 의 folder share download. auth 필요 X.
+
+```
+python3 scripts/cloud/transfer/pcloud-public-download.py <CODE> <DEST_DIR> [--parallel N]
+```
+
+- `<CODE>`: pCloud public link code (예: `kt4`)
+- `<DEST_DIR>`: download 받을 directory
+- `--parallel`: parallel curl 수 (default 8)
+- idempotent: size 일치하면 skip
+- 실패 시 retry 3 회 (exponential backoff)
+
+API: `https://api.pcloud.com/showpublink` + `getpublinkdownload`.
+
+#### Preprocess (data 가 없는 경우, multi-pod 분산)
+
+자세한 KAK-57 진행은 jira 참조. 핵심 pattern:
+
+- `pod-preprocess-pcloud-batch.sh`: pod 안에서 8 pod 분산 preprocess + pCloud tar upload
+- `pod-preprocess-interaction-batch.sh`: interaction (single threaded data_process.py)
+- `pod-pipeline-h200-single.sh`: H200 single big pod chain
+- `preprocess_chain_v3.sh`: validation 처리 chain
+
+각 script 의 환경 변수는 script 내부 `# 환경 변수:` section 참조.
+
+#### Transfer (rclone, pCloud OAuth)
+
+기존 방식 — rclone.conf 의 pcloud remote 사용 (host scp 또는 wrapper):
+
+- `cloud-rclone-download.sh` / `cloud-rclone-upload.sh`
+- `cloud-tar-upload-cleanup.sh`: preprocess 결과 tar+split + upload + cleanup
+
+### env var 우선순위
+
+각 script 는 다음 순서로 설정값 결정.
+
+1. command line 앞 env (예: `BATCH_SIZE=64 bash scripts/local/06-...sh`)
+2. shell export 값
+3. script 내부 default
+
+local/ 의 `.env` 파일은 docker compose 가 host → container env 주입 시 사용 (script 자체 동작은 위 1, 2번).

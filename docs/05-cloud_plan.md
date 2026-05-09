@@ -94,8 +94,8 @@ agent가 `runpodctl` 또는 GraphQL API로 처리:
      export GOOGLE_APPLICATION_CREDENTIALS=$HOME/.config/gcloud/application_default_credentials.json
      ```
    - 검증: `gsutil ls gs://waymo_open_dataset_motion_v_1_2_1/ | head`
-   - `bash scripts/01-download_womd.sh` (training_20s 1~2 shard)
-   - `bash scripts/02-build_image.sh` 불필요 (image 이미 pull됨, 그러나 코드 변경 시 image 안의 코드도 update 필요 — image에 코드는 안 들어있으므로 git clone만으로 OK)
+   - `bash scripts/local/01-download_womd.sh` (training_20s 1~2 shard)
+   - `bash scripts/local/02-build_image.sh` 불필요 (image 이미 pull됨, 그러나 코드 변경 시 image 안의 코드도 update 필요 — image에 코드는 안 들어있으므로 git clone만으로 OK)
    - 학습 launch
 4. 학습 완료 후 pod stop (비용 절약)
 

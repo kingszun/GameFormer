@@ -46,7 +46,7 @@ ln -s $DATASET_HOST_PATH ./data
 
 ### 3단계 — WOMD shard download
 
-`scripts/01-download_womd.sh`. host 실행, gsutil로 GCS bucket에서 shard 일부 받음.
+`scripts/local/01-download_womd.sh`. host 실행, gsutil로 GCS bucket에서 shard 일부 받음.
 
 env:
 - `WOMD_VERSION` — default `1_2_1` (v1.2.1, v1.1은 `training_20s` annotation 결손 있음)
@@ -65,8 +65,8 @@ shard 크기 차이 — 동일 shard count여도 subset에 따라 datasize 다�
 ### 4단계 — image build + container 기동
 
 ```
-bash scripts/02-build_image.sh   # 5~10분 (TF/waymo install 부분이 무거움)
-bash scripts/03-up.sh            # 즉시
+bash scripts/local/02-build_image.sh   # 5~10분 (TF/waymo install 부분이 무거움)
+bash scripts/local/03-up.sh            # 즉시
 ```
 
 container는 `sleep infinity` 로 상주. 이후 단계는 모두 `docker compose exec gameformer ...` 또는 4~6 script.
@@ -74,7 +74,7 @@ container는 `sleep infinity` 로 상주. 이후 단계는 모두 `docker compos
 ### 5단계 — smoke test
 
 ```
-bash scripts/04-smoke_test.sh
+bash scripts/local/04-smoke_test.sh
 ```
 
 확인 사항:
@@ -87,7 +87,7 @@ bash scripts/04-smoke_test.sh
 ### 6단계 — preprocess
 
 ```
-WOMD_SUBSET=training_20s bash scripts/05-open_loop_preprocess.sh
+WOMD_SUBSET=training_20s bash scripts/local/05-open_loop_preprocess.sh
 ```
 
 각 raw shard를 scene 단위로 parse → scene내 timestep slice 별로 `.npz` 저장.
@@ -100,7 +100,7 @@ WOMD_SUBSET=training_20s bash scripts/05-open_loop_preprocess.sh
 
 open_loop_planning (single GPU):
 ```
-BATCH_SIZE=8 EPOCHS=1 bash scripts/06-open_loop_train.sh
+BATCH_SIZE=8 EPOCHS=1 bash scripts/local/06-open_loop_train.sh
 ```
 
 interaction_prediction (DDP, 현재 script로 wrapping 안 됨):
@@ -137,6 +137,6 @@ pod 의 산출물은 network volume 에 저장되어 pod destroy 시에도 보�
 ### container 정리
 
 ```
-bash scripts/99-down.sh   # container 종료, image/volume 보존
+bash scripts/local/99-down.sh   # container 종료, image/volume 보존
 docker compose down --rmi local -v   # 완전 정리 (image까지 삭제)
 ```

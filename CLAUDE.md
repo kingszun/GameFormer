@@ -55,12 +55,12 @@ docker compose exec gameformer nvidia-smi
 
 전체 흐름 (smoke):
 ```
-WOMD_SUBSET=training_20s WOMD_SHARDS=2 bash scripts/01-download_womd.sh
-bash scripts/02-build_image.sh
-bash scripts/03-up.sh
-bash scripts/04-smoke_test.sh
-bash scripts/05-open_loop_preprocess.sh
-BATCH_SIZE=8 EPOCHS=1 bash scripts/06-open_loop_train.sh
+WOMD_SUBSET=training_20s WOMD_SHARDS=2 bash scripts/local/01-download_womd.sh
+bash scripts/local/02-build_image.sh
+bash scripts/local/03-up.sh
+bash scripts/local/04-smoke_test.sh
+bash scripts/local/05-open_loop_preprocess.sh
+BATCH_SIZE=8 EPOCHS=1 bash scripts/local/06-open_loop_train.sh
 ```
 
 interaction_prediction (DDP, 직접 호출):
