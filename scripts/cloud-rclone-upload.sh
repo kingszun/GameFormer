@@ -41,7 +41,7 @@ mkdir -p /root/.config/rclone /workspace/logs/\$(hostname)
 $SCP $HOME/.config/rclone/rclone.conf root@$SSH_IP:/root/.config/rclone/rclone.conf
 $SSH "rclone listremotes | grep -q '^pcloud:' || { echo 'pcloud remote 없음 — host config 확인'; exit 1; }"
 
-LOG=/workspace/logs/$(hostname)/rclone_${TAG}_$(date +%y%m%d_%H%M%S).log
+LOG=${LOG_PATH:-/workspace/logs/$(hostname)}/rclone_${TAG}_$(date +%y%m%d_%H%M%S).log
 STDOUT=${LOG}.stdout
 
 echo "[$(ts)] background rclone copy 시작 (transfers=$TRANSFERS)"

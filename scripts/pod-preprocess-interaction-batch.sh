@@ -31,7 +31,7 @@ LOAD_PATH=${LOAD_PATH:-/workspace/raw/training}
 SAVE_PATH=${SAVE_PATH:-/root/staging/interaction/train}
 TAR_DIR_BASE=${TAR_DIR_BASE:-/root/staging/tar_interaction}
 PCLOUD_DST=${PCLOUD_DST:-06_Datasets/gameformer/processed/interaction/train_tar}
-LOGS=${LOGS:-/workspace/logs/$(hostname)}
+LOGS=${LOGS:-${LOG_PATH:-/workspace/logs/$(hostname)}}
 SHARD_START=${SHARD_START:-0}
 SHARD_END=${SHARD_END:-}
 

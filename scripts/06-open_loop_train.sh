@@ -45,7 +45,7 @@ fi
 # KAK-56: pod 의 TRAINING_LOG_HOME 을 /workspace/logs/runs 로 일관 — entrypoint 의 log auto-tail 에 포함
 if [ "$MODE" = "pod" ]; then
     DATASET_HOME="${DATASET_HOME:-/workspace/data}"
-    TRAINING_LOG_HOME="${TRAINING_LOG_HOME:-/workspace/logs/$(hostname)/runs}"
+    TRAINING_LOG_HOME="${TRAINING_LOG_HOME:-${LOG_PATH:-/workspace/logs/$(hostname)}/runs}"
 else
     DATASET_HOME="${DATASET_HOME:-/workspace/GameFormer/data}"
     TRAINING_LOG_HOME="${TRAINING_LOG_HOME:-/workspace/GameFormer/training_log}"

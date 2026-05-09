@@ -49,7 +49,7 @@ SCP="scp -i $HOME/.runpod/ssh/RunPod-Key-Go -o StrictHostKeyChecking=no -P $SSH_
 TAG=$(basename $SRC)
 TAR_DIR_DEFAULT=$(dirname $SRC)/tar_$TAG
 TAR_DIR=${TAR_DIR:-$TAR_DIR_DEFAULT}
-LOG_BASE=/workspace/logs/$(hostname)/tar_upload_${TAG}_$(date +%y%m%d_%H%M%S)
+LOG_BASE=${LOG_PATH:-/workspace/logs/$(hostname)}/tar_upload_${TAG}_$(date +%y%m%d_%H%M%S)
 
 echo "[$(ts)] $POD_ID @ $SSH_IP:$SSH_PORT"
 echo "[$(ts)] src=$SRC tar_dir=$TAR_DIR dst=$DST chunk=$CHUNK_SIZE"

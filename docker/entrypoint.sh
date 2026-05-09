@@ -13,12 +13,17 @@ if [ "$(id -u)" = "0" ]; then
     /usr/sbin/sshd 2>/dev/null || true
 fi
 
-# KAK-56: auto-tail /workspace/logs/$(hostname)/**/*.log (per-pod) to entrypoint stdout
-# 같은 network volume 을 multi-pod mount 시 다른 pod 의 log 를 stream 하지 않도록 hostname prefix 격리.
-# pod 안 모든 작업이 /workspace/logs/$(hostname)/ 안에 log 작성하도록 LOGS env 일관.
-LOGS_DIR=/workspace/logs/$(hostname)
-mkdir -p $LOGS_DIR
-echo "===== ENTRYPOINT: log dir = $LOGS_DIR (hostname=$(hostname)) ====="
+# KAK-56: per-pod log isolation
+# multi-pod 가 같은 network volume mount 시 log 충돌 회피 위해 hostname prefix.
+# LOG_PATH env 를 /etc/environment 에 추가 — ssh login shell + bash 모두 inherit.
+# 모든 script 가 ${LOG_PATH} 사용 → entrypoint 한 곳 변경 시 일관 적용.
+LOG_PATH=/workspace/logs/$(hostname)
+mkdir -p $LOG_PATH
+# remove old LOG_PATH line (idempotent), then append current
+sed -i '/^LOG_PATH=/d' /etc/environment 2>/dev/null || true
+echo "LOG_PATH=$LOG_PATH" >> /etc/environment
+export LOG_PATH
+echo "===== ENTRYPOINT: LOG_PATH = $LOG_PATH (hostname=$(hostname)) ====="
 {
     declare -A TAILED
     while true; do
@@ -28,7 +33,7 @@ echo "===== ENTRYPOINT: log dir = $LOGS_DIR (hostname=$(hostname)) ====="
                 TAILED[$f]=1
                 ( echo "===== TAIL START: $f ====="; tail -n 0 -F "$f" 2>/dev/null ) &
             fi
-        done < <(find $LOGS_DIR -type f -name '*.log' 2>/dev/null)
+        done < <(find $LOG_PATH -type f -name '*.log' 2>/dev/null)
         sleep 5
     done
 } &

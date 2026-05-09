@@ -63,12 +63,16 @@ for i in $(seq 0 $((N - 1))); do
     SSH_OPTS="-i $HOME/.runpod/ssh/RunPod-Key-Go -o StrictHostKeyChecking=no -p $SSH_PORT"
     SCP_OPTS="-i $HOME/.runpod/ssh/RunPod-Key-Go -o StrictHostKeyChecking=no -P $SSH_PORT"
 
-    # 1. rclone install + config scp + git clone/pull
+    # 1. rclone install + config scp + git clone/pull (.git 까지 확인 — 불완전 clone 회피)
     ssh $SSH_OPTS root@$SSH_IP "
 which rclone > /dev/null 2>&1 || (apt update && apt install -y rclone)
 mkdir -p /root/.config/rclone /workspace/logs /root/staging
-[ -d /workspace/GameFormer ] || git clone https://github.com/kingszun/GameFormer /workspace/GameFormer 2>&1 | tail -3
-cd /workspace/GameFormer && git fetch origin && git checkout $GIT_BRANCH && git pull origin $GIT_BRANCH 2>&1 | tail -3
+if [ -d /workspace/GameFormer/.git ]; then
+    cd /workspace/GameFormer && git fetch origin && git checkout $GIT_BRANCH && git pull origin $GIT_BRANCH 2>&1 | tail -3
+else
+    rm -rf /workspace/GameFormer
+    git clone https://github.com/kingszun/GameFormer /workspace/GameFormer 2>&1 | tail -3
+fi
 "
     scp $SCP_OPTS $HOME/.config/rclone/rclone.conf root@$SSH_IP:/root/.config/rclone/rclone.conf
 
