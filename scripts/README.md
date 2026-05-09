@@ -127,7 +127,7 @@ API: `https://api.pcloud.com/showpublink` + `getpublinkdownload`.
 
 #### Preprocess (data 가 없는 경우, multi-pod 분산)
 
-자세한 진행은 jira 참조. 핵심 pattern:
+핵심 pattern:
 
 - `pod-preprocess-pcloud-batch.sh`: pod 안에서 8 pod 분산 preprocess + pCloud tar upload
 - `pod-preprocess-interaction-batch.sh`: interaction (single threaded data_process.py)

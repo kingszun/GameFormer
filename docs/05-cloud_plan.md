@@ -66,7 +66,7 @@ cloud pod로 전달은 pod 띄운 후 (아래 절차 참조).
 ### 코드 전달 (3a) 절차
 
 1. local repo의 변경 사항 commit:
-   - file: docker/{Dockerfile,entrypoint.sh}, pyproject.toml, uv.lock, compose.yaml, .env.example, .dockerignore, .gitignore, scripts/*, docs/*, CLAUDE.md
+   - file: docker/{Dockerfile,entrypoint.sh}, pyproject.toml, uv.lock, compose.yaml, .env.example, .dockerignore, .gitignore, scripts/*, docs/*
    - 코드 수정: `interaction_prediction/train.py`, `open_loop_planning/data_process.py`
 2. user 소유 git remote에 push (예: `kingszun/gameformer-fork`)
 3. cloud pod에서 `git clone <remote>` 또는 `git pull`

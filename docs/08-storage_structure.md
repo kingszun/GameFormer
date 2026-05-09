@@ -9,7 +9,7 @@ GameFormer project 의 data 가 보관되는 위치 + lifecycle + 사용 패턴 
 | RunPod container disk | pod local (RTX 3090 = 1204 GB, CPU pod = 20 GB) | pod 까지 | preprocess 중간 결과, prefetch raw, log |
 | 외부 cloud (pCloud) | `06_Datasets/gameformer/` (US, 7.5 TB total) | ✓ RunPod 와 무관 | backup, region 자유 학습, lock-in 회피 |
 
-storage 정책 일반은 [`~/.claude/rules/kck-runpod.md` 의 Storage section](#) 참조. 이 doc 는 GameFormer 의 구체 구조.
+이 doc는 GameFormer reproduction 환경의 storage 구조 + multi-pod 분산 시 contention 회피 방법을 다룬다.
 
 ---
 
@@ -334,7 +334,6 @@ runpodctl pod remove <h100-pod>
 
 ### 8. 관련 문서
 
-- `~/.claude/rules/kck-runpod.md` — RunPod platform 일반 (storage 정책, S3 endpoint 지원 region, rclone 사용 패턴)
 - `docs/01-environment.md` — Docker / compose stack
 - `docs/05-cloud_plan.md` — RunPod 진행 plan
 - `docs/07-data_pipeline.md` — preprocess 의 데이터 흐름 + subset 별 상세
