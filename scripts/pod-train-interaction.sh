@@ -71,17 +71,24 @@ cat $VALID_TAR/interaction_valid_b0000_0149.tar.part_* | tar -xf - || abort "val
 VALID_COUNT=$(find valid -type f -name '*.npz' | wc -l)
 echo "[$(ts)] valid done: $VALID_COUNT files, $(($(date +%s) - START))s"
 
-# === STEP 3: untar train (all batches) ===
-echo "[$(ts)] === STEP 3: untar train (all batches) ==="
+# === STEP 3: untar train (parallel, xargs -P 64) ===
+PARALLEL=${PARALLEL:-64}
+echo "[$(ts)] === STEP 3: parallel untar train (P=$PARALLEL) ==="
 BATCHES=$(ls $TRAIN_TAR | grep -oE 'interaction_train_b[0-9]+_[0-9]+' | sort -u)
-echo "[$(ts)] $(echo "$BATCHES" | wc -l) batches to untar"
-for batch in $BATCHES; do
+NB=$(echo "$BATCHES" | wc -l)
+echo "[$(ts)] $NB batches"
+START=$(date +%s)
+echo "$BATCHES" | xargs -P $PARALLEL -I {} bash -c '
+    BATCH=$1
     BS=$(date +%s)
-    cat $TRAIN_TAR/${batch}.tar.part_* | tar -xf - || abort "$batch untar failed"
+    cd '"$DATA_BASE"'
+    cat '"$TRAIN_TAR"'/${BATCH}.tar.part_* | tar -xf - 2>/dev/null
     BE=$(date +%s)
-    CNT=$(find train -type f -name '*.npz' | wc -l)
-    echo "[$(ts)] $batch untar $((BE - BS))s (total $CNT files)"
-done
+    echo "[$(date -u +%H:%M:%S)] $BATCH untar $((BE - BS))s" >> '"$CHAIN_LOG"'
+' bash {}
+END=$(date +%s)
+CNT=$(find train -type f -name '*.npz' | wc -l)
+echo "[$(ts)] all batches done — $CNT total files, $((END - START))s"
 
 # === STEP 4: cleanup tar dirs ===
 echo "[$(ts)] === STEP 4: cleanup tar dirs ==="
