@@ -413,6 +413,11 @@ class DataProcess(object):
                 self.build_map(parsed_data.map_features, parsed_data.dynamic_map_states)
 
                 for timestep in range(self.hist_len-1, time_len-self.future_len, 5):
+                    # KAK-41 skip: 이미 생성된 file 은 건너뛰기 (multi-pod resume 대응)
+                    filename = f"{save_path}/{scenario_id}_{timestep}.npz"
+                    if os.path.exists(filename):
+                        continue
+
                     # process data
                     ego = self.ego_process(sdc_id, timestep, parsed_data.tracks)
                     ref_line = self.route_process(sdc_id, timestep, self.current_xyh, parsed_data.tracks)
@@ -432,9 +437,8 @@ class DataProcess(object):
                     ego, neighbors, map_lanes, map_crosswalks, ref_line, ground_truth = \
                         self.normalize_data(ego, neighbors, map_lanes, map_crosswalks, ref_line, ground_truth, viz=viz)
 
-                    # save data
-                    filename = f"{save_path}/{scenario_id}_{timestep}.npz"
-                    np.savez(filename, ego=ego, neighbors=neighbors, map_lanes=map_lanes, map_crosswalks=map_crosswalks, 
+                    # save data (filename 은 위 skip check 에서 정의됨)
+                    np.savez(filename, ego=ego, neighbors=neighbors, map_lanes=map_lanes, map_crosswalks=map_crosswalks,
                              ref_line=ref_line, gt_future_states=ground_truth)
                 
                 self.pbar.update(1)
@@ -454,16 +458,17 @@ if __name__ == "__main__":
     parser.add_argument('--save_path', type=str, help='path to save processed data')
     parser.add_argument('--debug', action="store_true", help='visualize processed data', default=False)
     parser.add_argument('--use_multiprocessing', action="store_true", help='use multiprocessing', default=False)
-    
+    parser.add_argument('--processes', type=int, default=None, help='Pool processes (default: os.cpu_count())')
+
     args = parser.parse_args()
     data_files = glob.glob(args.load_path+'/*')
     save_path = args.save_path
     os.makedirs(save_path, exist_ok=True)
-    
+
     if args.use_multiprocessing:
-        with Pool() as p:
+        with Pool(processes=args.processes) as p:
             p.map(multiprocessing, data_files)
     else:
-        processor = DataProcess(data_files) 
+        processor = DataProcess(data_files)
         processor.process_data(save_path, viz=args.debug)
         print('Done!')
