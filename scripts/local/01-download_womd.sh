@@ -2,7 +2,7 @@
 # WOMD scenario tfrecord download.
 #
 # Wrapper that delegates to scripts/01-download_womd.py.
-# - image: /opt/venv/gcs/bin/python (KAK-18 aux venv with google-cloud-storage)
+# - image: /opt/venv/gcs/bin/python
 # - host : system python (host 에 google-cloud-storage 또는 google-cloud-sdk 필요)
 #
 # Prerequisites:

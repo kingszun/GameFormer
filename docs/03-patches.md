@@ -4,7 +4,7 @@ upstream GameFormer 코드 대비 변경 사항. 모두 환경 호환성 패치�
 
 ### patch 1 — open_loop_planning/data_process.py: WOMD v1.2.1 신규 map type 호환
 
-|  |  |
+| | |
 | --- | --- |
 | 파일 | `open_loop_planning/data_process.py:62` |
 | 원본 | `else: raise TypeError` |
@@ -21,7 +21,7 @@ upstream GameFormer 코드 대비 변경 사항. 모두 환경 호환성 패치�
 
 ### patch 2 — interaction_prediction/train.py: torch 2.x DDP launcher 호환
 
-|  |  |
+| | |
 | --- | --- |
 | 파일 | `interaction_prediction/train.py:263` |
 | 원본 | `parser.add_argument("--local_rank", type=int)` |
@@ -38,14 +38,14 @@ upstream GameFormer 코드 대비 변경 사항. 모두 환경 호환성 패치�
 
 ### patch 3 — open_loop_planning/train.py: file_system sharing strategy
 
-|  |  |
+| | |
 | --- | --- |
 | 파일 | `open_loop_planning/train.py:13~16` |
 | 변경 | import 직후 `torch.multiprocessing.set_sharing_strategy('file_system')` 추가 |
-| ticket | KAK-30 |
+| ticket | |
 
 배경:
-- DataLoader 가 `num_workers=os.cpu_count()` 로 worker spawn. cloud GPU pod (4090, 128 core) 에서 worker 128개.
+- DataLoader 가 `num_workers=os.cpu_count` 로 worker spawn. cloud GPU pod (4090, 128 core) 에서 worker 128개.
 - default sharing strategy `file_descriptor` 는 worker 간 tensor 공유에 fd 사용 → pod 의 ulimit -n 1024 (soft) 한계 초과.
 - 학습 41% 지점에서 `RuntimeError: Too many open files. Communication with the workers is no longer possible` 발생.
 - 3060 host (12 core) 에서는 worker 12개라 1024 안에 들어가서 통과 — cloud 환경에서만 발견.
@@ -57,30 +57,30 @@ upstream GameFormer 코드 대비 변경 사항. 모두 환경 호환성 패치�
 
 ### patch 4 — train.py log_path env 외부화
 
-|  |  |
+| | |
 | --- | --- |
 | 파일 | `open_loop_planning/train.py:111~117`, `interaction_prediction/train.py:1~18, 148~155` |
 | 변경 | `log_path = f"./training_log/{args.name}/"` → `log_home = os.environ.get('TRAINING_LOG_HOME', './training_log')` 후 `f"{log_home}/{args.name}/"` |
-| ticket | KAK-33 |
+| ticket | |
 
 배경:
-- 산출물 (training_log + checkpoint) 이 cwd 기준 상대 path 라 cloud pod container disk 에 저장 → pod destroy 시 사라짐 (KAK-9 진행 시 scp 회수).
+- 산출물 (training_log + checkpoint) 이 cwd 기준 상대 path 라 cloud pod container disk 에 저장 → pod destroy 시 사라짐.
 - 두 환경 (host docker compose vs cloud pod) 의 산출물 경로를 분리해야 — host: `./training_log/`, pod: `/workspace/data/runs/` (volume).
 - env 로 외부화하면 train.py 수정 없이 script wrapper 에서 분기 가능.
 
 영향:
 - env 미지정 시 default `./training_log/` 그대로 — 기존 host 동작 무변경.
-- `interaction_prediction/train.py` 도 동일 patch + 동시에 KAK-30 의 `set_sharing_strategy('file_system')` 같이 적용 (cloud DDP 환경에서 동일 fd 한계 위험).
+- `interaction_prediction/train.py` 도 동일 patch + 동시에 `set_sharing_strategy('file_system')` 같이 적용 (cloud DDP 환경에서 동일 fd 한계 위험).
 
 ### patch 5 — interaction_prediction/train.py: file_system sharing strategy
 
-|  |  |
+| | |
 | --- | --- |
 | 파일 | `interaction_prediction/train.py:1~18` |
 | 변경 | `torch.multiprocessing.set_sharing_strategy('file_system')` 추가 |
-| ticket | KAK-33 |
+| ticket | |
 
-KAK-30 의 open_loop 와 동일 — high-core pod 환경에서 fd 한계 초과 방지. cloud DDP 학습 시 effective.
+open_loop 와 동일 — high-core pod 환경에서 fd 한계 초과 방지. cloud DDP 학습 시 effective.
 
 ### 미적용 후보 patch (현재 불필요)
 

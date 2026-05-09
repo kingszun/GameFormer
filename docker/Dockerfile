@@ -1,7 +1,7 @@
 FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04
 
 # =============================================================================
-# Design (KAK-16):
+# Design:
 # - base: nvidia/cuda 11.8 cudnn8 runtime ubuntu22.04 (compute backend only)
 # - python + dep: uv-managed CPython 3.10 in /opt/uv-python (public dir
 #   so compose uid 1000 can traverse; /root is 0700 by default)
@@ -55,28 +55,28 @@ COPY pyproject.toml uv.lock ./
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-install-project
 
-# KAK-18: aux venv (download only).
+# aux venv (download only).
 # main venv (gameformer) 의 protobuf<3.20 보존 위해 google-cloud-storage 격리.
 # user OAuth ADC 가 gsutil 에서는 거부되고 python google-cloud-storage 만 동작.
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv venv /opt/venv/gcs --python 3.10 \
     && uv pip install --python /opt/venv/gcs/bin/python google-cloud-storage
 
-# KAK-17: ssh session 도 venv PATH 받도록.
+# ssh session 도 venv PATH 받도록.
 # Docker ENV 는 PID 1 만 적용 — sshd 가 fork 한 새 session 은 안 받음.
 # - /etc/environment: PAM 이 모든 session 시작 시 load (login + ssh non-login non-interactive 모두 적용)
 # - /etc/bash.bashrc: interactive bash 추가 보장
 RUN printf 'PATH="/opt/venv/gameformer/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"\n' > /etc/environment \
     && printf '\nexport PATH=/opt/venv/gameformer/bin:$PATH\n' >> /etc/bash.bashrc
 
-# KAK-43: aws cli v2 binary (cross-region S3 access for RunPod network volume)
+# aws cli v2 binary (cross-region S3 access for RunPod network volume)
 RUN apt-get update && apt-get install -y --no-install-recommends unzip \
     && curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscliv2.zip \
     && cd /tmp && unzip -q awscliv2.zip \
     && /tmp/aws/install \
     && rm -rf /tmp/aws /tmp/awscliv2.zip /var/lib/apt/lists/*
 
-# KAK-55: rclone (cross-cloud sync — pCloud / GCS / S3 통합 wrapper, region lock-in 회피)
+# rclone (cross-cloud sync — pCloud / GCS / S3 통합 wrapper, region lock-in 회피)
 RUN curl -fsSL https://rclone.org/install.sh | bash \
     && rclone version | head -1
 

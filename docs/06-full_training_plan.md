@@ -3,9 +3,9 @@ version: 0.3.0
 status: draft
 ---
 
-## 06 - 본격 학습 plan (KAK-1 epic 의 b/c/d 단계)
+## 06 - 본격 학습 plan
 
-KAK-3 (1차 cloud smoke) 통과 후 본격 학습 진입을 위한 design. 단계 분해, GPU/비용 매핑, 산출물 정책, 위험 대응 정리.
+ (1차 cloud smoke) 통과 후 본격 학습 진입을 위한 design. 단계 분해, GPU/비용 매핑, 산출물 정책, 위험 대응 정리.
 
 ### 1. 목표
 
@@ -43,17 +43,17 @@ paper dataset 명세:
 
 | 항목 | 값 | 출처 |
 | --- | --- | --- |
-| script | `IN_POD=1 BATCH_SIZE=64 EPOCHS=20 LR=2e-4 NAME=op_full bash scripts/local/06-open_loop_train.sh` | KAK-33 |
+| script | `IN_POD=1 BATCH_SIZE=64 EPOCHS=20 LR=2e-4 NAME=op_full bash scripts/local/06-open_loop_train.sh` | |
 | epoch | 20 | paper |
 | batch_size | 64 (paper 32 의 2x — sqrt lr scaling 보정 가능 범위) | user B |
 | learning_rate | 2e-4 (sqrt scaling 1.4e-4 의 round-up) | user B |
 | scheduler | paper MultiStepLR milestones=[10,12,14,16,18] gamma=0.5 (train.py 그대로) | paper |
 | levels | 4 | paper / default |
 | seed | 3407 | default |
-| dataset | training_20s 9000 train + 1000 valid scenario (paper Sec 4.2.2) | KAK-31 → KAK-19 |
-| input | `/workspace/data/processed/open_loop/train` (+ valid split) | KAK-8 패턴 |
-| output | `/workspace/data/runs/op_full/` | KAK-33 patch |
-| GPU | 1×H200 (us-il-1 가용성 확인 필요, fallback 1×H100) | smoke (KAK-9, 4090) 통과 |
+| dataset | training_20s 9000 train + 1000 valid scenario (paper Sec 4.2.2) | → |
+| input | `/workspace/data/processed/open_loop/train` (+ valid split) | 패턴 |
+| output | `/workspace/data/runs/op_full/` | patch |
+| GPU | 1×H200 (us-il-1 가용성 확인 필요, fallback 1×H100) | smoke 통과 |
 | 절차 | 1 epoch sanity (~2.5분) → loss 가 paper baseline (val_plannerADE ≈ 0.83) 과 합리적 거리면 19 epoch 추가 | smoke-then-full 패턴 |
 
 epoch 시간 estimate (B 후보, H200 batch 64):
@@ -78,12 +78,12 @@ epoch 시간 estimate (B 후보, H200 batch 64):
 | future_len | 80 (8s @ 10Hz) | default |
 | neighbors_to_predict | 1 (Waymo Joint) | default |
 | seed | 3407 | default |
-| dataset | training (full) — README NOTE 따라 training_20s 안 씀 | KAK-31 |
-| input | `/workspace/data/processed/interaction/train` + `/workspace/data/processed/interaction/valid` | KAK-8 패턴 확장 |
-| output | `/workspace/data/runs/ip_full/` | KAK-33 |
+| dataset | training (full) — README NOTE 따라 training_20s 안 씀 | |
+| input | `/workspace/data/processed/interaction/train` + `/workspace/data/processed/interaction/valid` | 패턴 확장 |
+| output | `/workspace/data/runs/ip_full/` | |
 | GPU 후보 | 1×H100 ($2.5~3/hr) | US-IL-1 / US-CA-2 |
 
-epoch 시간 estimate: 3060 baseline (KAK-11) interaction smoke 1 epoch = 13분 (8520 sample, batch 4). full training (425 GiB ≈ 8.5x training_20s sample size 추정) 에 batch 16 (smoke 의 4x), throughput H100 / 3060 ≈ 30x → 1 epoch ~ 15분. 30 epoch ~ 7.5 시간.
+epoch 시간 estimate: 3060 baseline interaction smoke 1 epoch = 13분 (8520 sample, batch 4). full training (425 GiB ≈ 8.5x training_20s sample size 추정) 에 batch 16 (smoke 의 4x), throughput H100 / 3060 ≈ 30x → 1 epoch ~ 15분. 30 epoch ~ 7.5 시간.
 
 #### (d) interaction_prediction multi-GPU (paper 재현)
 
@@ -102,7 +102,7 @@ paper 의 4 GPU setup 그대로. (c) 와 결과 비교가 NCCL 정합성 검증 
 
 | GPU | mem | RunPod region | $/hr (SECURE) | 적합 단계 |
 | --- | --- | --- | --- | --- |
-| RTX 4090 | 24 GB | US-IL-1 | $0.69 | smoke (KAK-9 검증 완료) |
+| RTX 4090 | 24 GB | US-IL-1 | $0.69 | smoke |
 | A100-40 | 40 GB | US-IL-1 / US-CA-2 | $1.5~2 | (b) backup |
 | A100-80 | 80 GB | US-CA-2 | $2~2.5 | (b) (c) low-end |
 | H100 | 80 GB | US-CA-2 | $2.5~3 | (b) full primary, (c) primary |
@@ -124,7 +124,7 @@ paper 의 4 GPU setup 그대로. (c) 와 결과 비교가 NCCL 정합성 검증 
 us-il-1 에 H100 부족 시 옵션:
 - a. volume migration 비용 (data transfer $X/GB)
 - b. us-il-1 의 A100-80 으로 (b)/(c) 진행 — 상대 throughput 감소
-- c. 신규 us-ca-2 volume 생성 + 데이터 재 push (S3 endpoint 으로) — KAK-19 의 second push
+- c. 신규 us-ca-2 volume 생성 + 데이터 재 push (S3 endpoint 으로) — second push
 
 진입 시점 RunPod console 에서 가용성 확인 후 결정.
 
@@ -138,14 +138,14 @@ us-il-1 에 H100 부족 시 옵션:
 | validation_interactive | 37.8 GiB | (c)(d) val |
 
 진행 chain:
-1. KAK-31: GCS → host download (진행 중, ~3시간 ETA)
-2. KAK-19: host → RunPod volume S3 endpoint push
+1. GCS → host download (진행 중, ~3시간 ETA)
+2. host → RunPod volume S3 endpoint push
 3. preprocess: pod 안에서 `scripts/local/05-open_loop_preprocess.sh` (open_loop) + `scripts/07-interaction_preprocess.sh` (interaction, 신규 script 필요)
 4. 본격 학습 진입
 
 preprocess output 크기:
 - open_loop: smoke (2 shard 164 MB → 1.8 GB processed). 비례 → 1000 shard ≈ ~50 GB
-- interaction: KAK-11 baseline (training 2 shard 886 MB → 2.2 GB processed). 비례 → 1000 shard ≈ ~110 GB
+- interaction: baseline (training 2 shard 886 MB → 2.2 GB processed). 비례 → 1000 shard ≈ ~110 GB
 - 합 + raw 530 GB → volume 100 GB 에 안 들어감 → volume 확장 필요
 
 volume 확장:
@@ -154,7 +154,7 @@ volume 확장:
 
 ### 6. 산출물 정책
 
-KAK-33 patch 적용 — 모든 산출물 volume 에 저장:
+patch 적용 — 모든 산출물 volume 에 저장:
 
 | 산출물 | path |
 | --- | --- |
@@ -168,19 +168,19 @@ KAK-33 patch 적용 — 모든 산출물 volume 에 저장:
 ### 7. 진행 dependency
 
 ```
-KAK-31 (host download, ~3hr)
-    └─> KAK-19 (host → volume push, ETA ~5~10hr 회선 의존)
-            ├─> KAK-32a: open_loop preprocess (volume 안에서, ~1~2hr)
-            │       └─> (b) open_loop full (4090, ~12hr)
-            ├─> KAK-32b: interaction preprocess (volume 안에서, ~3~4hr)
-            │       ├─> (c) interaction single GPU (H100, ~7.5hr)
-            │       └─> (d) interaction multi-GPU (4×H100, ~2.5hr)
-            └─> volume 확장 (100 GB → 800 GB, KAK-19 진행 중 동시 가능)
+ (host download, ~3hr)
+    └─> (host → volume push, ETA ~5~10hr 회선 의존)
+            ├─> open_loop preprocess (volume 안에서, ~1~2hr)
+            │ └─> (b) open_loop full (4090, ~12hr)
+            ├─> interaction preprocess (volume 안에서, ~3~4hr)
+            │ ├─> (c) interaction single GPU (H100, ~7.5hr)
+            │ └─> (d) interaction multi-GPU (4×H100, ~2.5hr)
+            └─> volume 확장 (100 GB → 800 GB)
 ```
 
 순서:
-1. KAK-31 끝 → KAK-19 시작
-2. KAK-19 끝 → preprocess sub-task 동시 (open_loop + interaction 병렬, CPU bound 라 같은 pod 가능)
+1. 끝 → 시작
+2. 끝 → preprocess sub-task 동시 (open_loop + interaction 병렬, CPU bound 라 같은 pod 가능)
 3. preprocess 끝 → 학습 단계 — (b), (c), (d) 순차 또는 우선순위 결정 후
 
 ### 7-bis. paper baseline metric (재현 비교 기준)
@@ -230,9 +230,9 @@ J = joint (M=6), M = marginal (M=64) + EM aggregation. 우리 (c)(d) 단계는 J
 | DIPP | 2.33 | 8.44 | 0.135 | 0.928 | 2.803 | 0.925 | 2.059 |
 | Ours (GameFormer K=4) | 1.98 | 7.53 | 0.129 | 0.836 | 2.451 | 0.853 | 1.919 |
 
-#### KAK-9 (smoke, batch 8, 1 epoch) 와 비교 (참고용 — 학습 불충분)
+#### (smoke, batch 8, 1 epoch) 와 비교 (참고용 — 학습 불충분)
 
-| metric | KAK-9 (1 epoch, batch 8, 2 shard subset) | paper (20 epoch, batch 32, 10000 scenario) |
+| metric | (1 epoch, batch 8, 2 shard subset) | paper (20 epoch, batch 32, 10000 scenario) |
 | --- | --- | --- |
 | val_plannerADE | 8.51 | 0.83 |
 | val_predictorADE | 8.18 | 0.85 |
@@ -264,8 +264,8 @@ J = joint (M=6), M = marginal (M=64) + EM aggregation. 우리 (c)(d) 단계는 J
 | NCCL 정합성 (d 단계) | single vs multi GPU 결과 비교. 다르면 sync 문제 의심 |
 | dataset I/O bottleneck (volume mfs) | nvidia-smi 의 GPU util 50% 미만 시 detect. workaround: container 안 cache (큰 RAM 이용) 또는 sequential read |
 | cost overrun | 학습 launch 전 estimate 확인. epoch 단위 nvidia-smi power + GPU util log → 중도 stop 가능 |
-| WOMD validation set 결과 학습용 의존 | validation 도 학습에 절대 사용 X. KAK-31 의 `valid_set` arg 확인 |
-| 산출물 path bug (KAK-33 첫 cloud 사용) | smoke (KAK-9 pattern) 1 epoch 으로 사전 검증 |
+| WOMD validation set 결과 학습용 의존 | validation 도 학습에 절대 사용 X. `valid_set` arg 확인 |
+| 산출물 path bug | smoke 1 epoch 으로 사전 검증 |
 
 ### 10. 후속 sub-task plan
 
@@ -274,11 +274,6 @@ design Done 후 다음 ticket 발행:
 | ticket | 내용 | 상태 |
 | --- | --- | --- |
 | ~~volume 확장~~ | 100 → 1024 GB | done — 26-05-08 (kingszun-storage) |
-| KAK-XX | 4 subset preprocess script 통합 (open_loop + interaction) — 신규 `scripts/07-interaction_preprocess.sh` | pending |
-| KAK-XX | (b) open_loop full 학습 + 검증 (1×H200, batch 64, lr 2e-4, epoch 20, B 후보) | pending |
-| KAK-XX | (c) interaction single GPU 학습 + 검증 (1×H100) | pending |
-| KAK-XX | (d) interaction multi-GPU DDP 학습 + 검증 + (c) 와 정합 비교 (4×H100 또는 4×H200) | pending |
-| KAK-XX | testing (open_loop_test.py / interaction inference) — paper Table 재현 | pending |
 
 ### 11. 미결정 / 추가 검토 필요
 

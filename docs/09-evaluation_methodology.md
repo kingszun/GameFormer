@@ -101,6 +101,6 @@ reproduction 목적 상 paper 의 reported metric 재현이 우선 → 위 옵�
 
 ## 참고 (재현 시 주의)
 
-- WOMD v1.2.1 의 validation_interactive 는 chain v3 (KAK-44) 에서 처리됨 — 86958 npz file (43479 unique scenes × 2 direction pair, network volume 보존 + pCloud upload 진행 중)
+- WOMD v1.2.1 의 validation_interactive 는 chain v3 에서 처리됨 — 86958 npz file (43479 unique scenes × 2 direction pair, network volume 보존 + pCloud upload 진행 중)
 - 학습 시 valid loss 가 train loss 보다 너무 낮으면 (예: 1/2 이하) → data preprocessing 또는 split 오류 의심
-- valid metric 가 paper baseline 보다 ±15% 이내 → reproduction 성공 기준 (KAK-34 v0.3 acceptance criteria)
+- valid metric 가 paper baseline 보다 ±15% 이내 → reproduction 성공 기준

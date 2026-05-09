@@ -3,12 +3,12 @@
 GameFormer 의 데이터 흐름 정리 — WOMD raw 부터 학습까지 전 과정.
 
 자세한 내용은 각 subset 별 doc 참조:
-- [`07a-open_loop_validation.md`](07a-open_loop_validation.md) — validation subset (KAK-50)
-- [`07b-open_loop_training_20s.md`](07b-open_loop_training_20s.md) — training_20s subset (KAK-51)
-- [`07c-interaction_validation.md`](07c-interaction_validation.md) — validation_interactive subset (KAK-52)
-- [`07d-interaction_training.md`](07d-interaction_training.md) — training subset (KAK-53)
+- [`07a-open_loop_validation.md`](07a-open_loop_validation.md) — validation subset
+- [`07b-open_loop_training_20s.md`](07b-open_loop_training_20s.md) — training_20s subset
+- [`07c-interaction_validation.md`](07c-interaction_validation.md) — validation_interactive subset
+- [`07d-interaction_training.md`](07d-interaction_training.md) — training subset
 
-관련: KAK-49 (story), KAK-1 (epic).
+관련: (story)).
 
 ---
 
@@ -54,15 +54,15 @@ Waymo proto: `waymo_open_dataset.protos.scenario_pb2.Scenario`
 
 ```
 Scenario {
-    string scenario_id              # unique id (예: "f3f55cf64033141c")
-    repeated float timestamps_seconds  # 91 timestep × 0.1s = 9.1초
-    int32 current_time_index        # 보통 10 (1초 시점, history 끝 + future 시작 경계)
-    repeated Track tracks           # scene 의 모든 agent (vehicle/pedestrian/cyclist)
-    repeated DynamicMapState dynamic_map_states  # 91 timestep 별 traffic light 상태
-    repeated MapFeature map_features  # static map (lane, road_line, road_edge, ...)
-    int32 sdc_track_index           # Self-Driving Car (Waymo 차량) 의 tracks index
-    repeated int32 objects_of_interest  # paper 가 평가하는 관심 object id
-    repeated RequiredPrediction tracks_to_predict  # Waymo 가 prediction 요청한 agent + difficulty
+    string scenario_id # unique id (예: "f3f55cf64033141c")
+    repeated float timestamps_seconds # 91 timestep × 0.1s = 9.1초
+    int32 current_time_index # 보통 10 (1초 시점, history 끝 + future 시작 경계)
+    repeated Track tracks # scene 의 모든 agent (vehicle/pedestrian/cyclist)
+    repeated DynamicMapState dynamic_map_states # 91 timestep 별 traffic light 상태
+    repeated MapFeature map_features # static map (lane, road_line, road_edge, ...)
+    int32 sdc_track_index # Self-Driving Car (Waymo 차량) 의 tracks index
+    repeated int32 objects_of_interest # paper 가 평가하는 관심 object id
+    repeated RequiredPrediction tracks_to_predict # Waymo 가 prediction 요청한 agent + difficulty
 }
 ```
 
@@ -70,9 +70,9 @@ Scenario {
 
 ```
 Track {
-    int32 id                        # agent 고유 id (모든 timestep 공유)
-    ObjectType object_type          # TYPE_UNSET=0, TYPE_VEHICLE=1, TYPE_PEDESTRIAN=2, TYPE_CYCLIST=3, TYPE_OTHER=4
-    repeated ObjectState states     # 91 timestep 의 state
+    int32 id # agent 고유 id (모든 timestep 공유)
+    ObjectType object_type # TYPE_UNSET=0, TYPE_VEHICLE=1, TYPE_PEDESTRIAN=2, TYPE_CYCLIST=3, TYPE_OTHER=4
+    repeated ObjectState states # 91 timestep 의 state
 }
 ```
 
@@ -80,11 +80,11 @@ Track {
 
 ```
 ObjectState {
-    float center_x, center_y, center_z  # world frame 위치 (m)
-    float length, width, height         # bounding box 크기 (m)
-    float heading                        # world frame 방향 (rad)
-    float velocity_x, velocity_y         # m/s
-    bool valid                           # 그 timestep 에서 추적 가능 여부
+    float center_x, center_y, center_z # world frame 위치 (m)
+    float length, width, height # bounding box 크기 (m)
+    float heading # world frame 방향 (rad)
+    float velocity_x, velocity_y # m/s
+    bool valid # 그 timestep 에서 추적 가능 여부
 }
 ```
 
@@ -96,13 +96,13 @@ ObjectState {
 MapFeature {
     int32 id
     oneof feature_data {
-        LaneCenter lane            # 차선 중앙선
-        RoadLine road_line         # 도로 line (점선, 실선 등)
-        RoadEdge road_edge         # 도로 edge (curb)
-        StopSign stop_sign         # 정지 표지
-        Crosswalk crosswalk        # 횡단보도
-        SpeedBump speed_bump       # 과속방지턱
-        Driveway driveway          # 진입로 (WOMD v1.2.1 신규)
+        LaneCenter lane # 차선 중앙선
+        RoadLine road_line # 도로 line (점선, 실선 등)
+        RoadEdge road_edge # 도로 edge (curb)
+        StopSign stop_sign # 정지 표지
+        Crosswalk crosswalk # 횡단보도
+        SpeedBump speed_bump # 과속방지턱
+        Driveway driveway # 진입로 (WOMD v1.2.1 신규)
     }
 }
 ```
@@ -110,33 +110,33 @@ MapFeature {
 **Lane (가장 중요)**:
 ```
 LaneCenter {
-    LaneType type                  # TYPE_UNDEFINED=0, TYPE_FREEWAY=1, TYPE_SURFACE_STREET=2, TYPE_BIKE_LANE=3
+    LaneType type # TYPE_UNDEFINED=0, TYPE_FREEWAY=1, TYPE_SURFACE_STREET=2, TYPE_BIKE_LANE=3
     float speed_limit_mph
-    repeated MapPoint polyline     # lane 중앙선 점 (약 1m 간격)
-    repeated BoundarySegment left_boundaries, right_boundaries  # 양쪽 boundary (RoadLine/RoadEdge id 와 시작/끝 index)
-    repeated int32 entry_lanes, exit_lanes  # 연결된 lane id
-    bool interpolating             # interpolated lane 여부
+    repeated MapPoint polyline # lane 중앙선 점 (약 1m 간격)
+    repeated BoundarySegment left_boundaries, right_boundaries # 양쪽 boundary (RoadLine/RoadEdge id 와 시작/끝 index)
+    repeated int32 entry_lanes, exit_lanes # 연결된 lane id
+    bool interpolating # interpolated lane 여부
 }
 ```
 
 **DynamicMapState** (timestep 1개):
 ```
 DynamicMapState {
-    repeated TrafficSignalLaneState lane_states  # lane 별 신호 상태
+    repeated TrafficSignalLaneState lane_states # lane 별 신호 상태
 }
 
 TrafficSignalLaneState {
-    int32 lane                     # lane id
-    LaneState state                # UNKNOWN/ARROW_STOP/ARROW_CAUTION/ARROW_GO/STOP/CAUTION/GO/FLASHING_STOP/FLASHING_CAUTION
-    MapPoint stop_point            # stop line 위치
+    int32 lane # lane id
+    LaneState state # UNKNOWN/ARROW_STOP/ARROW_CAUTION/ARROW_GO/STOP/CAUTION/GO/FLASHING_STOP/FLASHING_CAUTION
+    MapPoint stop_point # stop line 위치
 }
 ```
 
 **RequiredPrediction**:
 ```
 RequiredPrediction {
-    int32 track_index              # tracks[] 의 index
-    Difficulty difficulty          # LEVEL_1 / LEVEL_2
+    int32 track_index # tracks[] 의 index
+    Difficulty difficulty # LEVEL_1 / LEVEL_2
 }
 ```
 
@@ -239,11 +239,11 @@ GameFormer 는 두 task 학습:
 - predictorADE: neighbor 의 평균 ADE
 - predictorFDE: neighbor 의 평균 FDE
 
-**hyperparameter** (KAK-34 v0.3, B option):
+**hyperparameter**:
 - batch 64, lr 2e-4, epoch 20
 - optimizer: Adam (default in train.py)
 - grad clip: 5.0
-- file_descriptor sharing strategy (KAK-30 patch)
+- file_descriptor sharing strategy
 
 **GPU**: 1×H100
 
@@ -260,7 +260,7 @@ GameFormer 는 두 task 학습:
 - Collision rate
 - minADE / minFDE / miss rate (over K modes)
 
-**hyperparameter** (KAK-34 v0.3, D option):
+**hyperparameter**:
 - batch 32 per GPU × 4 GPU = **128 effective**
 - lr 1e-4 (paper 그대로, batch 32 per GPU 동일)
 - epoch 30 (paper 그대로)
@@ -271,7 +271,7 @@ GameFormer 는 두 task 학습:
 
 ---
 
-### 5. paper baseline (KAK-34 v0.3)
+### 5. paper baseline
 
 | 학습 | metric | paper 값 | acceptance margin |
 | --- | --- | --- | --- |
@@ -300,7 +300,7 @@ GameFormer 는 두 task 학습:
 
 - **partial file 검출**: open_loop file size 모두 512,088 bytes uniform → `find ... ! -size 512088c -delete` 으로 partial 폐기 가능
 - **shard 수 추정 X**: training_20s 의 shard 수 = **344** (description 의 252 X). chain script verify 시 `aws s3 ls | wc -l` 으로 동적 listing
-- **multi-pod chain skip**: data_process.py 의 skip patch (KAK-41/44) 활용 — 이미 file 있으면 즉시 다음 scene 으로
+- **multi-pod chain skip**: data_process.py 의 skip patch (/44) 활용 — 이미 file 있으면 즉시 다음 scene 으로
 - **download throughput** (cross-region S3 endpoint, EU-CZ-1 ↔ US-IL-1, parallel xargs cp -P 32): **133~258 MB/s**
 - **preprocess throughput** (RTX 3090 6 GPU host, cgroup 163.2 vCPU, 130 worker): **226 file/sec** (~13,580 file/min)
 - **container disk resize destructive**: `runpodctl pod update --container-disk-in-gb` 시 모든 data 손실 → 새 pod 만들기 권장
@@ -311,6 +311,6 @@ GameFormer 는 두 task 학습:
 ### 8. 관련 문서 / ticket
 
 - [docs/02-workflow.md](02-workflow.md) — 전체 workflow (preprocess + train script 호출 패턴)
-- [docs/06-full_training_plan.md](06-full_training_plan.md) — 학습 plan v0.3 (KAK-34)
+- [docs/06-full_training_plan.md](06-full_training_plan.md) — 학습 plan v0.3
 - [docs/04-smoke_results.md](04-smoke_results.md) — 3060 smoke test 결과
-- KAK-1 (Epic), KAK-49 (story), KAK-50/51/52/53 (sub-task), KAK-41 (open_loop full training), KAK-44 (interaction multi-GPU train)
+- (Epic)))))

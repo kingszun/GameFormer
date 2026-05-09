@@ -2,7 +2,7 @@
 """WOMD scenario tfrecord download via google-cloud-storage.
 
 cloud (ADC) + host (gcloud auth login + ADC) 둘 다 동작.
-KAK-18: gsutil 이 user OAuth ADC 거부하는 issue 우회 — python google-cloud-storage 사용.
+gsutil 이 user OAuth ADC 거부하는 issue 우회 — python google-cloud-storage 사용.
 """
 
 import argparse

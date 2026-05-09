@@ -19,7 +19,7 @@ scripts/05, 06 은 `MODE` env 자동 감지:
 | `DATASET_HOME` | `/workspace/GameFormer/data` | `/workspace/data` | data root (compose mount vs volume) |
 | `TRAINING_LOG_HOME` | `/workspace/GameFormer/training_log` | `/workspace/data/runs` | 산출물 root |
 
-train.py 가 `TRAINING_LOG_HOME` env 받아 `{HOME}/{name}/...` 로 출력 (KAK-33 patch). 명시 override 가능 — 예: `TRAINING_LOG_HOME=/workspace/data/exp01_runs bash scripts/06-...`.
+train.py 가 `TRAINING_LOG_HOME` env 받아 `{HOME}/{name}/...` 로 출력. 명시 override 가능 — 예: `TRAINING_LOG_HOME=/workspace/data/exp01_runs bash scripts/06-...`.
 
 ### 1단계 — host 환경 점검
 
@@ -65,8 +65,8 @@ shard 크기 차이 — 동일 shard count여도 subset에 따라 datasize 다�
 ### 4단계 — image build + container 기동
 
 ```
-bash scripts/local/02-build_image.sh   # 5~10분 (TF/waymo install 부분이 무거움)
-bash scripts/local/03-up.sh            # 즉시
+bash scripts/local/02-build_image.sh # 5~10분 (TF/waymo install 부분이 무거움)
+bash scripts/local/03-up.sh # 즉시
 ```
 
 container는 `sleep infinity` 로 상주. 이후 단계는 모두 `docker compose exec gameformer ...` 또는 4~6 script.
@@ -125,18 +125,18 @@ cd interaction_prediction && python -m torch.distributed.launch \
 | --- | --- | --- |
 | raw | `data/raw/${WOMD_SUBSET}/*.tfrecord*` | `/workspace/data/raw/${WOMD_SUBSET}/*.tfrecord*` |
 | processed | `data/processed/{open_loop,interaction}/${SPLIT}/*.npz` | `/workspace/data/processed/...` |
-| training log + checkpoint | `training_log/${NAME}/` (KAK-33 후) | `/workspace/data/runs/${NAME}/` (volume) |
+| training log + checkpoint | `training_log/${NAME}/` | `/workspace/data/runs/${NAME}/` (volume) |
 
 산출물 file:
 - `train.log` — text log
 - `train_log.csv` — epoch별 metric
 - `epochs_N.pth` 또는 `predictor_N_*.pth` — checkpoint
 
-pod 의 산출물은 network volume 에 저장되어 pod destroy 시에도 보존 (KAK-33).
+pod 의 산출물은 network volume 에 저장되어 pod destroy 시에도 보존.
 
 ### container 정리
 
 ```
-bash scripts/local/99-down.sh   # container 종료, image/volume 보존
-docker compose down --rmi local -v   # 완전 정리 (image까지 삭제)
+bash scripts/local/99-down.sh # container 종료, image/volume 보존
+docker compose down --rmi local -v # 완전 정리 (image까지 삭제)
 ```

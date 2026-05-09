@@ -1,6 +1,6 @@
 ## 07a - validation subset 상세 (open_loop planning valid)
 
-KAK-50 의 doc. WOMD `validation` raw → `processed/open_loop/valid/` → `open_loop_planning/train.py` 의 valid_epoch 흐름 전 과정.
+doc. WOMD `validation` raw → `processed/open_loop/valid/` → `open_loop_planning/train.py` 의 valid_epoch 흐름 전 과정.
 
 전체 overview 는 [`07-data_pipeline.md`](07-data_pipeline.md) 참조.
 
@@ -23,7 +23,7 @@ TFRecord 는 Google 의 binary container format. 각 record:
 [length: uint64][length crc32: uint32][data: bytes][data crc32: uint32]
 ```
 
-`tf.data.TFRecordDataset(filename)` 으로 read → 각 record 의 `data` = `Scenario` proto byte → `scenario_pb2.Scenario.ParseFromString(data.numpy())` 으로 deserialize.
+`tf.data.TFRecordDataset(filename)` 으로 read → 각 record 의 `data` = `Scenario` proto byte → `scenario_pb2.Scenario.ParseFromString(data.numpy)` 으로 deserialize.
 
 #### 1.3. validation subset 의 특성
 
@@ -56,8 +56,8 @@ Track {
     object_type: TYPE_VEHICLE = 1
     states: [
         {center_x: 100.5, center_y: 50.2, length: 4.7, width: 2.1, height: 1.6,
-         heading: 0.5, velocity_x: 8.0, velocity_y: 0.1, valid: true},  # timestep 0
-        {center_x: 100.6, ...},  # timestep 1
+         heading: 0.5, velocity_x: 8.0, velocity_y: 0.1, valid: true}, # timestep 0
+        {center_x: 100.6, ...}, # timestep 1
         ... (총 91 timestep)
     ]
 }
@@ -71,11 +71,11 @@ MapFeature {
     lane: {
         type: TYPE_SURFACE_STREET = 2
         speed_limit_mph: 35.0
-        polyline: [{x:100, y:50}, {x:101, y:50}, ...]  # ~50 point (~1m 간격)
+        polyline: [{x:100, y:50}, {x:101, y:50}, ...] # ~50 point (~1m 간격)
         left_boundaries: [{boundary_feature_id: 999, lane_start_index: 0, lane_end_index: 30, boundary_type: BROKEN_WHITE = 1}]
         right_boundaries: [{boundary_feature_id: 1000, ...}]
         entry_lanes: [677]
-        exit_lanes: [679, 680]  # 분기 가능
+        exit_lanes: [679, 680] # 분기 가능
     }
 }
 ```
@@ -123,23 +123,23 @@ self.crosswalks = {map_id → Crosswalk}
 self.stop_signs = {map_id → StopSign}
 self.speed_bumps = {map_id → SpeedBump}
 # WOMD v1.2.1 신규 driveway type → continue (skip, KAK patch)
-self.roads = self.road_edges + self.road_lines  # boundary 처리 시 통합
-self.traffic_signals = dynamic_map_states  # 91 timestep 별 신호
+self.roads = self.road_edges + self.road_lines # boundary 처리 시 통합
+self.traffic_signals = dynamic_map_states # 91 timestep 별 신호
 ```
 
 ##### Step 2: `ego_process(sdc_id, timestep, tracks)`
 
 SDC 의 history 11 step 추출:
 ```python
-sdc_states = tracks[sdc_id].states[timestep+1-11 : timestep+1]  # 11 step
+sdc_states = tracks[sdc_id].states[timestep+1-11 : timestep+1] # 11 step
 ego = np.zeros((11, 9))
 for i, state in enumerate(sdc_states):
     ego[i] = [state.center_x, state.center_y, state.heading,
               state.velocity_x, state.velocity_y,
               state.length, state.width, state.height,
-              ego_type=0]  # SDC type 은 항상 0 (vehicle 이지만 ego 로 marking)
-self.current_xyh = (state.center_x, state.center_y, state.heading)  # last (timestep)
-return ego  # (11, 9)
+              ego_type=0] # SDC type 은 항상 0 (vehicle 이지만 ego 로 marking)
+self.current_xyh = (state.center_x, state.center_y, state.heading) # last (timestep)
+return ego # (11, 9)
 ```
 
 `self.current_xyh` = 마지막 (현재) state — normalize 시 origin.
@@ -148,12 +148,12 @@ return ego  # (11, 9)
 
 SDC 의 ground truth trajectory 따라 reference path 생성:
 ```python
-gt_path = tracks[sdc_id].states  # 91 step (모든 timestep)
+gt_path = tracks[sdc_id].states # 91 step (모든 timestep)
 route = find_route(gt_path, timestep, cur_pos, self.lanes, self.traffic_signals)
-ref_path = np.array(route)  # (N, 5)
+ref_path = np.array(route) # (N, 5)
 if N < 1000:
     ref_path = np.append(ref_path, repeat(last_waypoint, 1000-N))
-return ref_path  # (1000, 5)
+return ref_path # (1000, 5)
 ```
 
 `find_route` (`utils/route_planning_utils.py`): GT 이동 경로 가까운 lane 추적 → forward direction 의 lane sequence 따라 1000 waypoint 생성. 5 attribute = `[x, y, heading, ?, ?]`.
@@ -178,8 +178,8 @@ for i, neighbor_id in enumerate(sorted_neighbors[:10]):
                                       s.velocity_x, s.velocity_y,
                                       s.length, s.width, s.height,
                                       tracks[neighbor_id].object_type]
-self.neighbors_id = sorted_neighbors[:10]  # ground truth 추출 시 사용
-return neighbors_states, self.neighbors_id  # (10, 11, 9)
+self.neighbors_id = sorted_neighbors[:10] # ground truth 추출 시 사용
+return neighbors_states, self.neighbors_id # (10, 11, 9)
 ```
 
 ##### Step 5: `map_process(traj, timestep, type)` — ego + 10 neighbor 별로 11번 호출
@@ -196,7 +196,7 @@ for curr_lane in ref_lane_ids:
     ref_lanes.extend(candidate)
 
 # 3. (vehicle/cyclist 만) 좌/우 인접 lane 추가
-if agent_type != 2:  # 보행자 아님
+if agent_type != 2: # 보행자 아님
     neighbor_lanes = find_neighbor_lanes(...)
     forward of neighbor lanes → ref_lanes.extend
     
@@ -210,13 +210,13 @@ stop_sign_lanes = [lane_id, ...]
 # 6. 6 lane × 100 point × 16 attribute 추출
 vectorized_map = np.zeros((6, 100, 16))
 for i, s_lane in enumerate(ref_lanes[:6]):
-    cache_lane = np.zeros((200, 16))  # 200 point 임시 buffer
+    cache_lane = np.zeros((200, 16)) # 200 point 임시 buffer
     for lane in s_lane:
         for point in lane.polyline:
-            cache_lane[k, 0:3] = point  # centerline xyh
-            cache_lane[k, 3:6] = nearest_point(point, left_boundary)  # left bdry xyh
-            cache_lane[k, 6:9] = nearest_point(point, right_boundary)  # right bdry xyh
-            cache_lane[k, 9] = speed_limit_mph / 2.237  # m/s
+            cache_lane[k, 0:3] = point # centerline xyh
+            cache_lane[k, 3:6] = nearest_point(point, left_boundary) # left bdry xyh
+            cache_lane[k, 6:9] = nearest_point(point, right_boundary) # right bdry xyh
+            cache_lane[k, 9] = speed_limit_mph / 2.237 # m/s
             cache_lane[k, 10] = lane.type
             cache_lane[k, 11] = left_boundary_type
             cache_lane[k, 12] = right_boundary_type
@@ -224,14 +224,14 @@ for i, s_lane in enumerate(ref_lanes[:6]):
             cache_lane[k, 14] = lane.interpolating
             cache_lane[k, 15] = (lane in stop_sign_lanes)
             k += 1
-    vectorized_map[i] = cache_lane[::2]  # 200 → 100 point (2배 downsample)
+    vectorized_map[i] = cache_lane[::2] # 200 → 100 point (2배 downsample)
 
 # 7. 4 crosswalk × 100 point × 3 (xy + ?)
 detection = polygon(50m × 40m, agent 앞 방향)
 for crosswalk in self.crosswalks:
     if detection.intersects(crosswalk.polygon):
-        polyline = polygon_completion(crosswalk.polygon)  # 폐곡선 → polyline
-        polyline = polyline[linspace(0, N, num=100)]  # 100 point sample
+        polyline = polygon_completion(crosswalk.polygon) # 폐곡선 → polyline
+        polyline = polyline[linspace(0, N, num=100)] # 100 point sample
         vectorized_crosswalks[i, :100] = polyline
 ```
 
@@ -255,10 +255,10 @@ return: (6, 100, 16), (4, 100, 3)
 
 SDC + 10 neighbor 의 future 50 step:
 ```python
-gt = np.zeros((1+10, 50, 5))  # 1 SDC + 10 neighbor
+gt = np.zeros((1+10, 50, 5)) # 1 SDC + 10 neighbor
 
 # SDC future
-sdc_future = tracks[sdc_id].states[timestep+1 : timestep+51]  # 50 step
+sdc_future = tracks[sdc_id].states[timestep+1 : timestep+51] # 50 step
 for i, s in enumerate(sdc_future):
     gt[0, i] = [s.center_x, s.center_y, s.heading, s.velocity_x, s.velocity_y]
 
@@ -268,7 +268,7 @@ for j, neighbor_id in enumerate(self.neighbors_id):
     for i, s in enumerate(neighbor_future):
         gt[1+j, i] = [s.center_x, s.center_y, s.heading, s.velocity_x, s.velocity_y]
 
-return gt  # (11, 50, 5)
+return gt # (11, 50, 5)
 ```
 
 ##### Step 7: `normalize_data(...)`
@@ -282,7 +282,7 @@ center, angle = self.current_xyh[:2], self.current_xyh[2]
 ego[:, :5] = agent_norm(ego, center, angle)
 gt[0] = agent_norm(gt[0], center, angle)
 for i in range(10):
-    if neighbors[i, -1, 0] != 0:  # valid
+    if neighbors[i, -1, 0] != 0: # valid
         neighbors[i, :, :5] = agent_norm(neighbors[i], center, angle, impute=True)
         gt[i+1] = agent_norm(gt[i+1], center, angle)
 
@@ -291,7 +291,7 @@ for i in range(11):
     for j in range(6):
         lane = map_lanes[i, j]
         if lane[0][0] != 0:
-            lane[:, :9] = map_norm(lane, center, angle)  # centerline + left/right bdry
+            lane[:, :9] = map_norm(lane, center, angle) # centerline + left/right bdry
     for k in range(4):
         crosswalk = map_crosswalks[i, k]
         if crosswalk[0][0] != 0:
@@ -310,12 +310,12 @@ ref_line = ref_line_norm(ref_line, center, angle)
 ```python
 filename = f"{save_path}/{scenario_id}_{timestep}.npz"
 np.savez(filename,
-    ego=ego,                    # (11, 9)
-    neighbors=neighbors,        # (10, 11, 9)
-    map_lanes=map_lanes,        # (11, 6, 100, 16)
-    map_crosswalks=map_crosswalks,  # (11, 4, 100, 3)
-    ref_line=ref_line,          # (1000, 5)
-    gt_future_states=gt         # (11, 50, 5)
+    ego=ego, # (11, 9)
+    neighbors=neighbors, # (10, 11, 9)
+    map_lanes=map_lanes, # (11, 6, 100, 16)
+    map_crosswalks=map_crosswalks, # (11, 4, 100, 3)
+    ref_line=ref_line, # (1000, 5)
+    gt_future_states=gt # (11, 50, 5)
 )
 ```
 
@@ -325,24 +325,24 @@ np.savez(filename,
 
 ```python
 parser.add_argument('--use_multiprocessing', action="store_true")
-parser.add_argument('--processes', type=int, default=None)  # KAK-41 patch
+parser.add_argument('--processes', type=int, default=None) # patch
 
-data_files = glob.glob(args.load_path+'/*')  # 150 shard
+data_files = glob.glob(args.load_path+'/*') # 150 shard
 
 if args.use_multiprocessing:
     with Pool(processes=args.processes) as p:
-        p.map(multiprocessing, data_files)  # 1 shard = 1 worker task
+        p.map(multiprocessing, data_files) # 1 shard = 1 worker task
 ```
 
 **worker 1개 = shard 1개 처리** (병렬 단위 = shard).
 
-#### 2.4. skip 로직 (KAK-41 patch)
+#### 2.4. skip 로직
 
 ```python
 for timestep in range(self.hist_len-1, time_len-self.future_len, 5):
     filename = f"{save_path}/{scenario_id}_{timestep}.npz"
     if os.path.exists(filename):
-        continue  # multi-pod resume / restart 대응
+        continue # multi-pod resume / restart 대응
     # process ...
     np.savez(filename, ...)
 ```
@@ -428,30 +428,30 @@ DataLoader 가 batch_size 만큼 stack → tuple of tensors (B, ...).
 def valid_epoch(data_loader, model):
     epoch_loss = []
     epoch_metrics = []
-    model.eval()  # dropout, batchnorm eval mode
+    model.eval # dropout, batchnorm eval mode
 
     with tqdm(data_loader, desc="Validation", unit="batch") as epoch:
         for batch in epoch:
             inputs = {
-                'ego_state': batch[0].to(args.device),         # (B, 11, 9)
-                'neighbors_state': batch[1].to(args.device),   # (B, 10, 11, 9)
-                'map_lanes': batch[2].to(args.device),         # (B, 11, 6, 100, 16)
-                'map_crosswalks': batch[3].to(args.device),    # (B, 11, 4, 100, 3)
-                'ref_line': batch[4].to(args.device)           # (B, 1000, 5)
+                'ego_state': batch[0].to(args.device), # (B, 11, 9)
+                'neighbors_state': batch[1].to(args.device), # (B, 10, 11, 9)
+                'map_lanes': batch[2].to(args.device), # (B, 11, 6, 100, 16)
+                'map_crosswalks': batch[3].to(args.device), # (B, 11, 4, 100, 3)
+                'ref_line': batch[4].to(args.device) # (B, 1000, 5)
             }
 
-            ego_future = batch[5][:, 0].to(args.device)        # (B, 50, 5) SDC future
-            neighbors_future = batch[5][:, 1:].to(args.device)  # (B, 10, 50, 5)
-            neighbors_future_valid = torch.ne(neighbors_future[..., :2], 0)  # mask invalid
+            ego_future = batch[5][:, 0].to(args.device) # (B, 50, 5) SDC future
+            neighbors_future = batch[5][:, 1:].to(args.device) # (B, 10, 50, 5)
+            neighbors_future_valid = torch.ne(neighbors_future[..., :2], 0) # mask invalid
 
-            with torch.no_grad():
+            with torch.no_grad:
                 level_k_outputs = model(inputs)
                 loss, results = level_k_loss(level_k_outputs, ego_future, neighbors_future, neighbors_future_valid)
-                plan = results[:, 0]              # (B, 50, 5) SDC plan
-                prediction = results[:, 1:]       # (B, 10, 50, 5) neighbor prediction
+                plan = results[:, 0] # (B, 50, 5) SDC plan
+                prediction = results[:, 1:] # (B, 10, 50, 5) neighbor prediction
 
             metrics = motion_metrics(plan, prediction, ego_future, neighbors_future, neighbors_future_valid)
-            epoch_loss.append(loss.item())
+            epoch_loss.append(loss.item)
             epoch_metrics.append(metrics)
 
     # epoch metric
@@ -482,8 +482,8 @@ def valid_epoch(data_loader, model):
 
 **`motion_metrics(plan, prediction, ego_future, neighbors_future, neighbors_future_valid)`**:
 ```python
-plannerADE = mean(L2(plan[:, :, :2], ego_future[:, :, :2]), dim=1)  # over time
-plannerFDE = L2(plan[:, -1, :2], ego_future[:, -1, :2])  # last step
+plannerADE = mean(L2(plan[:, :, :2], ego_future[:, :, :2]), dim=1) # over time
+plannerFDE = L2(plan[:, -1, :2], ego_future[:, -1, :2]) # last step
 predictorADE = mean(L2(prediction[..., :2], neighbors_future[..., :2]) * valid_mask)
 predictorFDE = L2(prediction[:, :, -1, :2], neighbors_future[:, :, -1, :2]) * valid_mask
 return [plannerADE, plannerFDE, predictorADE, predictorFDE]
@@ -502,7 +502,7 @@ valid set 은 training 동안 변화 X → epoch 별 model 의 generalization (u
 
 ### 5. paper baseline 비교
 
-paper Table 1 의 open_loop planning baseline (KAK-34 v0.3 의 acceptance):
+paper Table 1 의 open_loop planning baseline:
 - plannerADE / plannerFDE
 - predictorADE / predictorFDE
 - (자세한 paper 값 + acceptance margin 은 docs/06-full_training_plan.md 참조)
@@ -524,8 +524,8 @@ acceptance: paper 값 대비 **±10~15% margin**.
 
 ### 7. 관련
 
-- **KAK-50** (이 sub-task)
-- KAK-49 (parent story)
-- KAK-41 (학습 ticket — open_loop full training)
+- **** (이 sub-task)
+- (parent story)
+- (학습 ticket — open_loop full training)
 - code: `open_loop_planning/data_process.py` (preprocess), `open_loop_planning/train.py` (학습), `model/GameFormer.py`, `utils/open_loop_train_utils.py`, `utils/data_utils.py`
 - doc: [`07-data_pipeline.md`](07-data_pipeline.md) overview, [`02-workflow.md`](02-workflow.md), [`06-full_training_plan.md`](06-full_training_plan.md)

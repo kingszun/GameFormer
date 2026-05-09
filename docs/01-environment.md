@@ -2,7 +2,7 @@
 
 ### Dockerfile 개요
 
-base: `nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04` (KAK-16, 26-05-08)
+base: `nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04`
 - compute backend only — python / torch / dep 은 모두 venv 안
 - 이전 stack `pytorch/pytorch:2.3.1-cuda11.8-cudnn8-runtime` 에서 변경. base 와 dep 분리, lock 으로 reproducibility 강화
 
@@ -10,7 +10,7 @@ base: `nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04` (KAK-16, 26-05-08)
 - `libgl1`, `libglib2.0-0` — matplotlib backend 의존성
 - `openssh-server` — RunPod "SSH over exposed TCP" 모드 (scp 가능)
 - `iproute2` — `ss` (sshd listen 검증)
-- `google-cloud-cli` — `gsutil` 로 WOMD bucket 접근. ADC env 로 인증 (KAK-7)
+- `google-cloud-cli` — `gsutil` 로 WOMD bucket 접근. ADC env 로 인증
 
 python + 패키지 관리: `uv` 0.11.7 (`ghcr.io/astral-sh/uv:0.11.7` 에서 binary copy)
 - python: uv-managed CPython 3.10 in `/opt/uv-python` (UV_PYTHON_INSTALL_DIR public dir → compose uid 1000 traversal 가능)
