@@ -57,5 +57,5 @@ GameFormer/
 
 `docs/05-cloud_plan.md` 참조. 결정 완료 사항:
 - 학습 범위: 1×4090 smoke ($0.3, 1~2h)
-- WOMD 인증: host의 user OAuth ADC json 복사 (service account는 Waymo bucket ACL 거부, 26-05-08 검증)
+- WOMD 인증: host의 user OAuth ADC json 복사 (service account는 Waymo bucket ACL 거부)
 - 코드 전달: git push → cloud pod git clone

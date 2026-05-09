@@ -7,7 +7,7 @@ local 검증 완료 후 RunPod에서 학습 진행하기 위한 계획. 결정 �
 | 항목 | 선택 | 비고 |
 | --- | --- | --- |
 | 학습 범위 | 1×4090 smoke | $0.3, 1~2h. 본격 학습 전 cloud 환경 통과만 확인 |
-| WOMD 인증 | host의 user OAuth ADC json 복사 | service account는 Waymo bucket ACL을 통과 못 함 (26-05-08 검증, 아래 노트). user OAuth credential 만 valid |
+| WOMD 인증 | host의 user OAuth ADC json 복사 | service account는 Waymo bucket ACL을 통과 못 함 (아래 노트). user OAuth credential 만 valid |
 | 코드 전달 | git push → cloud pod git clone | Docker Hub image (5GB)는 한 번만 push. 코드 변경은 git만 |
 
 ### 인증 결정 배경 (왜 service account 가 안 되는가)

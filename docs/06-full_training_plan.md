@@ -15,7 +15,7 @@ status: draft
 
 ### 2. 단계 분해
 
-user 결정 (26-05-08): 4090 은 동작 확인만. 본격 학습은 H100/H200. batch 도 GPU memory 적절 조정. open_loop 는 single GPU (코드 가 DDP 미지원). (b) 후보 B 확정 — batch 64 + lr 2e-4 (sqrt scaling) + paper milestones epoch 20.
+user 결정: 4090 은 동작 확인만. 본격 학습은 H100/H200. batch 도 GPU memory 적절 조정. open_loop 는 single GPU (코드 가 DDP 미지원). (b) 후보 B 확정 — batch 64 + lr 2e-4 (sqrt scaling) + paper milestones epoch 20.
 
 | 단계 | 작업 | 데이터 | GPU | batch | lr | epoch | 시간 estimate | 비용 estimate |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
