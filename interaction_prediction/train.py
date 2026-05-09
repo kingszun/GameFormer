@@ -1,4 +1,9 @@
 import os
+# inter_pred_utils 가 waymo metric 계산에 tensorflow 사용. PyTorch 가 GPU VRAM 점유 후
+# TF 가 추가 메모리 요청하면 OOM. import tensorflow 전에 GPU 차단.
+import tensorflow as tf
+tf.config.set_visible_devices([], 'GPU')
+
 import torch
 import sys
 sys.path.append('..')
