@@ -69,6 +69,13 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 RUN printf 'PATH="/opt/venv/gameformer/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"\n' > /etc/environment \
     && printf '\nexport PATH=/opt/venv/gameformer/bin:$PATH\n' >> /etc/bash.bashrc
 
+# KAK-43: aws cli v2 binary (cross-region S3 access for RunPod network volume)
+RUN apt-get update && apt-get install -y --no-install-recommends unzip \
+    && curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscliv2.zip \
+    && cd /tmp && unzip -q awscliv2.zip \
+    && /tmp/aws/install \
+    && rm -rf /tmp/aws /tmp/awscliv2.zip /var/lib/apt/lists/*
+
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
