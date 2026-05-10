@@ -2,7 +2,7 @@
 # open_loop_planning 학습
 #
 # host (docker compose) / pod (직접) 자동 dispatch.
-# train.py 의 산출물 위치는 TRAINING_LOG_HOME env 로 외부화 (KAK-33).
+# train.py 의 산출물 위치는 TRAINING_LOG_HOME env 로 외부화.
 #
 # Env vars:
 #   MODE                host | pod | auto (default auto - /.dockerenv 또는 IN_POD env 면 pod)
@@ -42,7 +42,7 @@ if [ -z "${MODE:-}" ]; then
 fi
 
 # path defaults by MODE (절대 path)
-# KAK-56: pod 의 TRAINING_LOG_HOME 을 /workspace/logs/runs 로 일관 — entrypoint 의 log auto-tail 에 포함
+# pod 의 TRAINING_LOG_HOME 을 /workspace/logs/runs 로 일관 — entrypoint 의 log auto-tail 에 포함
 if [ "$MODE" = "pod" ]; then
     DATASET_HOME="${DATASET_HOME:-/workspace/data}"
     TRAINING_LOG_HOME="${TRAINING_LOG_HOME:-${LOG_PATH:-/workspace/logs/$(hostname)}/runs}"

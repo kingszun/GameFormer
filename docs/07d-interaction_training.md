@@ -1,6 +1,6 @@
 ## 07d - training subset 상세 (interaction prediction train)
 
-KAK-53 의 doc. WOMD `training` raw → `processed/interaction/train/` → `interaction_prediction/train.py` 의 train_epoch (DDP 4 GPU) 흐름.
+doc. WOMD `training` raw → `processed/interaction/train/` → `interaction_prediction/train.py` 의 train_epoch (DDP 4 GPU) 흐름.
 
 전체 overview 는 [`07-data_pipeline.md`](07-data_pipeline.md) 참조.
 **raw schema, preprocess 함수, output structure 는 validation_interactive 와 동일** — [`07c-interaction_validation.md`](07c-interaction_validation.md) 참조 (이 doc 는 차이점 + train 관련 detail 만).
@@ -46,7 +46,7 @@ KAK-53 의 doc. WOMD `training` raw → `processed/interaction/train/` → `inte
 #### 2.1. 추가 challenge
 
 - raw 425 GB → cross-region download (EU-CZ-1 ↔ US-IL-1) 필요
-- container disk **1204 GB 로 resize** (KAK-41 chain v2)
+- container disk **1204 GB 로 resize**
 - preprocess 시간: 130 worker, 1000 shard / 130 = 7.7 batch × 47분 ≈ **6시간**
 
 ---
@@ -59,10 +59,10 @@ KAK-53 의 doc. WOMD `training` raw → `processed/interaction/train/` → `inte
 | neighbors | (32, 11, 9) | 32 neighbor |
 | map_lanes | (2, 6, 300, 17) | 2 × 6 lane × 300 point × 17 |
 | map_crosswalks | (2, 4, 100, 3) | 2 × 4 crosswalk × 100 × 3 |
-| object_type | (2,) | 2 agent type |
+| object_type | (2) | 2 agent type |
 | region_6 | (6, 2) | region anchor |
-| object_index | (2,) | 2 agent id |
-| current_state | (4,) | ego[0] pose |
+| object_index | (2) | 2 agent id |
+| current_state | (4) | ego[0] pose |
 | gt_future_states | (2, 80, 5) | 2 × 80 future × 5 |
 
 file 명 pattern: `<scenario_id>_<sdc_id1>_<sdc_id2>_{interest|r}.npz`
@@ -80,10 +80,10 @@ file 명 pattern: `<scenario_id>_<sdc_id1>_<sdc_id2>_{interest|r}.npz`
 
 | 항목 | valid_epoch (07c) | train_epoch |
 |---|---|---|
-| model mode | `model.eval()` | `model.train()` |
+| model mode | `model.eval` | `model.train` |
 | dropout | inference | training |
-| gradient | `torch.no_grad()` | enabled |
-| optimizer | X | `zero_grad()` + `backward()` + `step()` |
+| gradient | `torch.no_grad` | enabled |
+| optimizer | X | `zero_grad` + `backward` + `step` |
 | grad clip | X | clip_grad_norm_(5.0) |
 | 결과 사용 | metric 측정 | model parameter update |
 
@@ -99,8 +99,8 @@ def setup(rank, world_size):
     dist.init_process_group("nccl", rank=rank, world_size=world_size)
     torch.cuda.set_device(rank)
 
-def cleanup():
-    dist.destroy_process_group()
+def cleanup:
+    dist.destroy_process_group
 
 # DDP wrap
 model = GameFormer(...).to(rank)
@@ -111,9 +111,9 @@ train_sampler = DistributedSampler(train_dataset, num_replicas=world_size, rank=
 train_loader = DataLoader(train_dataset, batch_size=32, sampler=train_sampler, ...)
 ```
 
-#### 4.3. KAK-30 patch — `--local-rank` arg
+#### 4.3. patch — `--local-rank` arg
 
-torch 1.x 의 launcher 는 `--local_rank` (underscore) 만 받았지만 torch 2.x 의 launcher 는 `--local-rank` (hyphen) 를 사용. KAK-30 patch 가 둘 다 받게 추가:
+torch 1.x 의 launcher 는 `--local_rank` (underscore) 만 받았지만 torch 2.x 의 launcher 는 `--local-rank` (hyphen) 를 사용. patch 가 둘 다 받게 추가:
 
 ```python
 parser.add_argument("--local_rank", "--local-rank", type=int, default=0)
@@ -125,8 +125,8 @@ parser.add_argument("--local_rank", "--local-rank", type=int, default=0)
 
 ```python
 def train_epoch(rank, world_size, model, train_loader, optimizer, epoch):
-    model.train()
-    train_sampler.set_epoch(epoch)  # shuffle reproducibility
+    model.train
+    train_sampler.set_epoch(epoch) # shuffle reproducibility
     
     for batch in train_loader:
         inputs = {
@@ -137,21 +137,21 @@ def train_epoch(rank, world_size, model, train_loader, optimizer, epoch):
             'object_type': batch[4].to(rank),
             'region_6': batch[5].to(rank),
         }
-        gt = batch[8].to(rank)  # (B, 2, 80, 5)
+        gt = batch[8].to(rank) # (B, 2, 80, 5)
         
-        optimizer.zero_grad()
+        optimizer.zero_grad
         outputs = ddp_model(inputs)
         loss = joint_loss(outputs, gt)
-        loss.backward()
-        nn.utils.clip_grad_norm_(ddp_model.parameters(), 5)
-        optimizer.step()
+        loss.backward
+        nn.utils.clip_grad_norm_(ddp_model.parameters, 5)
+        optimizer.step
         
         # DDP 가 자동으로 gradient all-reduce across GPUs
     
     return mean_loss
 ```
 
-#### 4.5. hyperparameter (KAK-34 v0.3, D option)
+#### 4.5. hyperparameter
 
 | param | value | 의미 |
 |---|---|---|
@@ -164,7 +164,7 @@ def train_epoch(rank, world_size, model, train_loader, optimizer, epoch):
 | grad clip | 5.0 | gradient norm clip |
 | workers (DataLoader) | (CLI) | num_workers per GPU |
 
-#### 4.6. CLI 명령 (KAK-44 의 plan)
+#### 4.6. CLI 명령
 
 ```
 cd interaction_prediction && python -m torch.distributed.launch \
@@ -190,17 +190,17 @@ for epoch in range(training_epochs):
     # valid (rank 0 만 또는 모두)
     valid_loss, valid_metrics = valid_epoch(rank, world_size, ddp_model, valid_loader)
     
-    if rank == 0:  # logging 은 rank 0 만
+    if rank == 0: # logging 은 rank 0 만
         logging.info(f"Epoch {epoch}: train_loss={train_loss}, valid_loss={valid_loss}")
-        logging.info(f"  metrics: PlanningADE={valid_metrics[0]}, Collision={valid_metrics[1]}")
-        logging.info(f"           minADE={valid_metrics[2]}, minFDE={valid_metrics[3]}, miss={valid_metrics[4]}")
+        logging.info(f" metrics: PlanningADE={valid_metrics[0]}, Collision={valid_metrics[1]}")
+        logging.info(f" minADE={valid_metrics[2]}, minFDE={valid_metrics[3]}, miss={valid_metrics[4]}")
         
         # save checkpoint
-        torch.save(ddp_model.module.state_dict(), f"{run_dir}/predictor_{epoch}.pth")
+        torch.save(ddp_model.module.state_dict, f"{run_dir}/predictor_{epoch}.pth")
     
-    scheduler.step()
+    scheduler.step
     
-    dist.barrier()  # 모든 rank sync
+    dist.barrier # 모든 rank sync
 ```
 
 ---
@@ -243,9 +243,9 @@ ETA (전체):
 
 ### 8. 관련
 
-- **KAK-53** (이 sub-task)
-- KAK-49 (parent story)
-- KAK-52 (validation_interactive, 같은 preprocess script)
-- KAK-44 (학습 ticket — interaction multi-GPU train, 4×H100 DDP)
+- **** (이 sub-task)
+- (parent story)
+- (validation_interactive, 같은 preprocess script)
+- (학습 ticket — interaction multi-GPU train, 4×H100 DDP)
 - code: `interaction_prediction/data_process.py`, `interaction_prediction/train.py`, `model/GameFormer.py`
 - doc: [`07-data_pipeline.md`](07-data_pipeline.md), [`07c-interaction_validation.md`](07c-interaction_validation.md), [`02-workflow.md`](02-workflow.md), [`06-full_training_plan.md`](06-full_training_plan.md)

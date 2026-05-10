@@ -9,8 +9,8 @@ GameFormer reproduction 의 학습/평가 setup 과 paper baseline 비교 protoc
 | split | gradient update | 학습 중 사용 | 평가용 |
 |---|---|---|---|
 | **train** | 모델 parameter update 의 source | 매 step | — |
-| **valid (= dev)** | ✗ | **매 epoch 후 loss 측정** | ✓ 최종 metric |
-| **test** | ✗ | ✗ | ✓ unbiased final metric |
+| **valid (= dev)** | — | **매 epoch 후 loss 측정** | 최종 metric |
+| **test** | — | — | unbiased final metric |
 
 valid 의 학습 중 역할:
 - inference only (gradient 안 계산)
@@ -23,11 +23,11 @@ valid 의 학습 중 역할:
 
 | set | 용도 | label 공개 |
 |---|---|---|
-| training (487k scenarios) | gradient update | ✓ |
-| training_20s (344 sparse shards of 1000) | open_loop_planning train | ✓ |
-| validation (44k scenarios) | open_loop_planning eval (val) | ✓ |
-| validation_interactive (44k scenarios) | interaction_prediction eval (val) | ✓ |
-| testing (44k scenarios) | leaderboard 만 | ✗ (Waymo private) |
+| training (487k scenarios) | gradient update | yes |
+| training_20s (344 sparse shards of 1000) | open_loop_planning train | yes |
+| validation (44k scenarios) | open_loop_planning eval (val) | yes |
+| validation_interactive (44k scenarios) | interaction_prediction eval (val) | yes |
+| testing (44k scenarios) | leaderboard 만 | — (Waymo private) |
 
 → test set label 비공개 → 학술 논문은 **validation set 에서 metric 보고**.
 
@@ -101,6 +101,6 @@ reproduction 목적 상 paper 의 reported metric 재현이 우선 → 위 옵�
 
 ## 참고 (재현 시 주의)
 
-- WOMD v1.2.1 의 validation_interactive 는 chain v3 (KAK-44) 에서 처리됨 — 86958 npz file (43479 unique scenes × 2 direction pair, network volume 보존 + pCloud upload 진행 중)
+- WOMD v1.2.1 의 validation_interactive 는 chain v3 에서 처리됨 — 86958 npz file (43479 unique scenes × 2 direction pair, network volume 보존 + pCloud upload 진행 중)
 - 학습 시 valid loss 가 train loss 보다 너무 낮으면 (예: 1/2 이하) → data preprocessing 또는 split 오류 의심
-- valid metric 가 paper baseline 보다 ±15% 이내 → reproduction 성공 기준 (KAK-34 v0.3 acceptance criteria)
+- valid metric 가 paper baseline 보다 ±15% 이내 → reproduction 성공 기준

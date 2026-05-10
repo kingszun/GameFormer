@@ -19,7 +19,7 @@ import time
 from model.GameFormer import GameFormer
 from utils.inter_pred_utils import *
 
-# KAK-33: open_loop 의 KAK-30 patch 와 동일 — high-core pod 에서 fd 한계 초과 방지.
+# open_loop 의 patch 와 동일 — high-core pod 에서 fd 한계 초과 방지.
 torch.multiprocessing.set_sharing_strategy('file_system')
 
 
@@ -156,7 +156,7 @@ def validation_epoch(valid_data, model, epoch):
 # Define model training process
 def main():
 
-    # KAK-33: TRAINING_LOG_HOME env 로 산출물 위치 외부화 (host: ./training_log, pod: /workspace/data/runs).
+    # TRAINING_LOG_HOME env 로 산출물 위치 외부화 (host: ./training_log, pod: /workspace/data/runs).
     log_home = os.environ.get('TRAINING_LOG_HOME', './training_log')
     log_path = f"{log_home}/{args.name}/"
     os.makedirs(log_path, exist_ok=True)

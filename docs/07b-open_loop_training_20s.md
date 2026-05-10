@@ -1,6 +1,6 @@
 ## 07b - training_20s subset 상세 (open_loop planning train)
 
-KAK-51 의 doc. WOMD `training_20s` raw → `processed/open_loop/train/` → `open_loop_planning/train.py` 의 train_epoch 흐름.
+doc. WOMD `training_20s` raw → `processed/open_loop/train/` → `open_loop_planning/train.py` 의 train_epoch 흐름.
 
 전체 overview 는 [`07-data_pipeline.md`](07-data_pipeline.md) 참조.
 **raw schema, preprocess 함수, output structure 는 validation 과 동일** — [`07a-open_loop_validation.md`](07a-open_loop_validation.md) 참조 (이 doc 는 차이점만 명시).
@@ -12,7 +12,7 @@ KAK-51 의 doc. WOMD `training_20s` raw → `processed/open_loop/train/` → `op
 | 항목 | validation | training_20s |
 |---|---|---|
 | 위치 | `gs://.../scenario/validation/*` | `gs://.../scenario/training_20s/*` |
-| shard 수 | 150 | **344** (description 의 252 가 아니라 실측 — KAK-50 에서도 검증) |
+| shard 수 | 150 | **344** (description 의 252 가 아니라 실측 — 에서도 검증) |
 | 총 size | 39 GB | 30 GB (1 shard 당 평균 ~87 MB, validation 의 1/3) |
 | 용도 | open_loop **eval** | open_loop **train** |
 | Scenario length | **9.1초** (91 timestep) | **20초** (200 timestep, 이름 그대로) ← 단, GameFormer 는 91 step 만 사용 |
@@ -63,7 +63,7 @@ file size: 512,088 bytes uniform.
 #### 추정 file 수
 
 - 344 shard × 평균 ~270 scenario × 7 timestep ≈ **650,000 file**
-- 이전 KAK-9 smoke 시 252 shard 추정 했지만 실제 344 → file 수 더 많음
+- 이전 smoke 시 252 shard 추정 했지만 실제 344 → file 수 더 많음
 
 ---
 
@@ -73,11 +73,11 @@ file size: 512,088 bytes uniform.
 
 | 항목 | valid_epoch | train_epoch |
 |---|---|---|
-| model mode | `model.eval()` | `model.train()` |
+| model mode | `model.eval` | `model.train` |
 | dropout / batchnorm | inference mode | training mode |
-| gradient | `torch.no_grad()` | enabled |
-| optimizer | X | `optimizer.zero_grad()` + `loss.backward()` + `optimizer.step()` |
-| grad clip | X | `nn.utils.clip_grad_norm_(model.parameters(), 5)` |
+| gradient | `torch.no_grad` | enabled |
+| optimizer | X | `optimizer.zero_grad` + `loss.backward` + `optimizer.step` |
+| grad clip | X | `nn.utils.clip_grad_norm_(model.parameters, 5)` |
 | 결과 사용 | metric 측정 + best model 선택 | model parameter update |
 
 #### 4.2. train_epoch logic
@@ -86,7 +86,7 @@ file size: 512,088 bytes uniform.
 def train_epoch(data_loader, model, optimizer):
     epoch_loss = []
     epoch_metrics = []
-    model.train()  # dropout, batchnorm training mode
+    model.train # dropout, batchnorm training mode
 
     with tqdm(data_loader, desc="Training", unit="batch") as epoch:
         for batch in epoch:
@@ -102,24 +102,24 @@ def train_epoch(data_loader, model, optimizer):
             neighbors_future_valid = torch.ne(neighbors_future[..., :2], 0)
 
             # gradient 계산 + parameter update
-            optimizer.zero_grad()
+            optimizer.zero_grad
             level_k_outputs = model(inputs)
             loss, results = level_k_loss(level_k_outputs, ego_future, neighbors_future, neighbors_future_valid)
             plan = results[:, 0]
             prediction = results[:, 1:]
 
-            loss.backward()
-            nn.utils.clip_grad_norm_(model.parameters(), 5)  # gradient explosion 방지
-            optimizer.step()
+            loss.backward
+            nn.utils.clip_grad_norm_(model.parameters, 5) # gradient explosion 방지
+            optimizer.step
 
             metrics = motion_metrics(plan, prediction, ego_future, neighbors_future, neighbors_future_valid)
-            epoch_loss.append(loss.item())
+            epoch_loss.append(loss.item)
             epoch_metrics.append(metrics)
 
     return mean_loss, [plannerADE, plannerFDE, predictorADE, predictorFDE]
 ```
 
-#### 4.3. hyperparameter (KAK-34 v0.3, B option)
+#### 4.3. hyperparameter
 
 | param | value | 의미 |
 |---|---|---|
@@ -131,7 +131,7 @@ def train_epoch(data_loader, model, optimizer):
 | grad clip | 5.0 | gradient norm clip |
 | workers | (CLI) | DataLoader num_workers |
 
-#### 4.4. file_descriptor sharing strategy (KAK-30 patch)
+#### 4.4. file_descriptor sharing strategy
 
 ```python
 torch.multiprocessing.set_sharing_strategy('file_system')
@@ -152,14 +152,14 @@ for epoch in range(training_epochs):
     
     # log
     logging.info(f"Epoch {epoch}: train_loss={train_loss}, valid_loss={valid_loss}")
-    logging.info(f"  train: plannerADE={train_metrics[0]}, plannerFDE={train_metrics[1]}")
-    logging.info(f"  valid: plannerADE={valid_metrics[0]}, plannerFDE={valid_metrics[1]}")
+    logging.info(f" train: plannerADE={train_metrics[0]}, plannerFDE={train_metrics[1]}")
+    logging.info(f" valid: plannerADE={valid_metrics[0]}, plannerFDE={valid_metrics[1]}")
     
     # scheduler step
-    scheduler.step()
+    scheduler.step
     
     # save checkpoint
-    torch.save(model.state_dict(), f"{run_dir}/predictor_{epoch}.pth")
+    torch.save(model.state_dict, f"{run_dir}/predictor_{epoch}.pth")
 ```
 
 ---
@@ -186,15 +186,15 @@ paper Table 1 (open_loop planning):
 - plannerADE / plannerFDE
 - predictorADE / predictorFDE
 
-acceptance: paper 값 대비 ±10~15% margin (KAK-34 v0.3).
+acceptance: paper 값 대비 ±10~15% margin.
 
 ---
 
 ### 8. 관련
 
-- **KAK-51** (이 sub-task)
-- KAK-49 (parent story)
-- KAK-50 (validation, 같은 preprocess script)
-- KAK-41 (학습 ticket)
+- **** (이 sub-task)
+- (parent story)
+- (validation, 같은 preprocess script)
+- (학습 ticket)
 - code: `open_loop_planning/data_process.py`, `open_loop_planning/train.py`, `model/GameFormer.py`, `utils/open_loop_train_utils.py`
 - doc: [`07-data_pipeline.md`](07-data_pipeline.md), [`07a-open_loop_validation.md`](07a-open_loop_validation.md), [`02-workflow.md`](02-workflow.md), [`06-full_training_plan.md`](06-full_training_plan.md)

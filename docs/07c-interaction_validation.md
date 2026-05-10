@@ -1,6 +1,6 @@
 ## 07c - validation_interactive subset 상세 (interaction prediction valid)
 
-KAK-52 의 doc. WOMD `validation_interactive` raw → `processed/interaction/valid/` → `interaction_prediction/train.py` 의 valid_epoch (DDP) 흐름.
+doc. WOMD `validation_interactive` raw → `processed/interaction/valid/` → `interaction_prediction/train.py` 의 valid_epoch (DDP) 흐름.
 
 전체 overview 는 [`07-data_pipeline.md`](07-data_pipeline.md) 참조.
 
@@ -56,7 +56,7 @@ WOMD 의 `validation_interactive` subset 은 **interactive scenario** 만 모음
 | future_len | 50 step | **80 step** (paper 의 8초 horizon) |
 | map_lanes shape | (1+10, 6, 100, 16) | **(2, 6, 300, 17)** — 2 agent, 더 dense (300 point), 1 attribute 추가 |
 | 추가 field | — | object_type, object_index, region_6, current_state |
-| Pool processes | default os.cpu_count() | **default 8** (script 안 default) |
+| Pool processes | default os.cpu_count | **default 8** (script 안 default) |
 
 #### 2.2. 함수 별 처리
 
@@ -66,7 +66,7 @@ open_loop 의 build_map 과 거의 동일 — 단 `road_lines` 와 `road_edges` 
 
 ```python
 self.lanes = {map_id → LaneCenter}
-self.roads = {map_id → RoadLine|RoadEdge}  # 하나로 통합
+self.roads = {map_id → RoadLine|RoadEdge} # 하나로 통합
 self.crosswalks = {map_id → Crosswalk}
 self.stop_signs = {map_id → StopSign}
 self.speed_bumps = {map_id → SpeedBump}
@@ -78,14 +78,14 @@ self.traffic_signals = dynamic_map_states
 scenario 의 `tracks_to_predict` (id) + `objects_of_interest` (id) 를 받아서 **pair 식별**:
 
 ```python
-self.sdc_ids_list = []  # 각 element: ((ego_id, neighbor_id), interesting_flag)
+self.sdc_ids_list = [] # 각 element: ((ego_id, neighbor_id), interesting_flag)
 
 for ego_id in tracks_list:
-    ego_state = tracks[ego_id].states[hist_len-1]  # current state (timestep 10)
+    ego_state = tracks[ego_id].states[hist_len-1] # current state (timestep 10)
     ego_xy = (ego_state.center_x, ego_state.center_y)
     
     candidate_tracks = []
-    cnt = 2  # 각 ego 당 최대 2 pair (interesting 1 + random N)
+    cnt = 2 # 각 ego 당 최대 2 pair (interesting 1 + random N)
     
     if len(tracks_list) == 1:
         # tracks_to_predict 가 1개만 → 모든 다른 agent 를 candidate
@@ -117,15 +117,15 @@ for ego_id in tracks_list:
 open_loop 의 1 ego 와 다름. sdc_ids = (id1, id2):
 
 ```python
-ego = np.zeros((2, hist_len, 9))  # 2 agent × 11 step × 9 attr
+ego = np.zeros((2, hist_len, 9)) # 2 agent × 11 step × 9 attr
 for i, sdc_id in enumerate(sdc_ids):
-    states = tracks[sdc_id].states[0:hist_len]  # 11 step
+    states = tracks[sdc_id].states[0:hist_len] # 11 step
     for j, s in enumerate(states):
         ego[i, j] = [s.center_x, s.center_y, s.heading,
                      s.velocity_x, s.velocity_y,
                      s.length, s.width, s.height,
                      tracks[sdc_id].object_type]
-return ego  # (2, 11, 9)
+return ego # (2, 11, 9)
 ```
 
 **self.current_xyzh** = ego[0] 의 마지막 state (= 첫 번째 ego 의 current pose) — normalize origin.
@@ -175,12 +175,12 @@ map_process 는 ego 2 agent 별로 호출 → map_lanes shape `(2, 6, 300, 17)`.
 open_loop 의 50 step 과 다름. paper 의 8초 (80 step × 0.1s) horizon:
 
 ```python
-gt = np.zeros((2, future_len=80, 5))  # 2 agent × 80 step × 5 attr
+gt = np.zeros((2, future_len=80, 5)) # 2 agent × 80 step × 5 attr
 for i, sdc_id in enumerate(sdc_ids):
-    future_states = tracks[sdc_id].states[hist_len : hist_len+future_len]  # 80 step
+    future_states = tracks[sdc_id].states[hist_len : hist_len+future_len] # 80 step
     for j, s in enumerate(future_states):
         gt[i, j] = [s.center_x, s.center_y, s.heading, s.velocity_x, s.velocity_y]
-return gt  # (2, 80, 5)
+return gt # (2, 80, 5)
 ```
 
 ##### Step 7: `normalize_data(...)`
@@ -203,15 +203,15 @@ inter = 'interest' if interesting==1 else 'r'
 filename = f"{save_dir}/{scenario_id}_{sdc_ids[0]}_{sdc_ids[1]}_{inter}.npz"
 
 np.savez(filename,
-    ego=ego,                         # (2, 11, 9)
-    neighbors=neighbors,             # (32, 11, 9)
-    map_lanes=map_lanes,             # (2, 6, 300, 17)
-    map_crosswalks=map_crosswalks,   # (2, 4, 100, 3)
-    object_type=object_type,         # (2,) — 두 agent 의 object_type
-    region_6=region_6,               # (6, 2) — point cluster (point_dir 없으면 zeros)
-    object_index=object_index,       # (2,) — 두 agent 의 id (Waymo internal)
-    current_state=self.current_xyzh[0],  # (4,) — ego[0] 의 current x, y, z, heading
-    gt_future_states=gt              # (2, 80, 5)
+    ego=ego, # (2, 11, 9)
+    neighbors=neighbors, # (32, 11, 9)
+    map_lanes=map_lanes, # (2, 6, 300, 17)
+    map_crosswalks=map_crosswalks, # (2, 4, 100, 3)
+    object_type=object_type, # (2) — 두 agent 의 object_type
+    region_6=region_6, # (6, 2) — point cluster (point_dir 없으면 zeros)
+    object_index=object_index, # (2) — 두 agent 의 id (Waymo internal)
+    current_state=self.current_xyzh[0], # (4) — ego[0] 의 current x, y, z, heading
+    gt_future_states=gt # (2, 80, 5)
 )
 ```
 
@@ -225,12 +225,12 @@ data_files = glob.glob(args.load_path+'/*')
 
 if args.use_multiprocessing:
     with Pool(processes=args.processes) as p:
-        p.map(multiprocessing, data_files)  # 1 shard = 1 worker task
+        p.map(multiprocessing, data_files) # 1 shard = 1 worker task
 ```
 
-**default 8 worker** (open_loop 의 default `os.cpu_count()` 와 다름). 명시 안 하면 8 만 사용 — 큰 vCPU 시스템에서 비효율. KAK-44 chain 에서 `--processes 130` 명시.
+**default 8 worker** (open_loop 의 default `os.cpu_count` 와 다름). 명시 안 하면 8 만 사용 — 큰 vCPU 시스템에서 비효율. chain 에서 `--processes 130` 명시.
 
-#### 2.4. skip 로직 (KAK-44 patch)
+#### 2.4. skip 로직
 
 ```python
 for pairs in self.sdc_ids_list:
@@ -238,7 +238,7 @@ for pairs in self.sdc_ids_list:
     inter = 'interest' if interesting==1 else 'r'
     filename = self.save_dir + f"/{scenario_id}_{sdc_ids[0]}_{sdc_ids[1]}_{inter}.npz"
     if os.path.exists(filename):
-        continue  # multi-pod resume
+        continue # multi-pod resume
     # process ...
     np.savez(filename, ...)
 ```
@@ -263,10 +263,10 @@ for pairs in self.sdc_ids_list:
 | `neighbors` | (32, 11, 9) | float32 | 32 neighbor × 11 hist × 9 |
 | `map_lanes` | (2, 6, 300, 17) | float32 | 2 agent × 6 lane × 300 point × 17 attr |
 | `map_crosswalks` | (2, 4, 100, 3) | float32 | 2 agent × 4 crosswalk × 100 point × 3 |
-| `object_type` | (2,) | int | 2 agent 의 object_type (1=vehicle, 2=pedestrian, ...) |
+| `object_type` | (2) | int | 2 agent 의 object_type (1=vehicle, 2=pedestrian, ...) |
 | `region_6` | (6, 2) | float32 | 6-mode region anchor (point_dir 없으면 zeros) |
-| `object_index` | (2,) | int | 2 agent 의 Waymo internal id |
-| `current_state` | (4,) | float32 | ego[0] 의 current pose [x, y, z, heading] |
+| `object_index` | (2) | int | 2 agent 의 Waymo internal id |
+| `current_state` | (4) | float32 | ego[0] 의 current pose [x, y, z, heading] |
 | `gt_future_states` | (2, 80, 5) | float32 | 2 agent × 80 future step × [x, y, h, vx, vy] |
 
 #### 3.3. ego / neighbors 의 9 attribute (open_loop 와 동일)
@@ -298,7 +298,7 @@ paper 의 region anchor — model 의 multi-mode prediction 시 anchor 로 사�
 #### 3.6. file 수 — Done 측정
 
 - 150 shard × 평균 ~6 pair/scene × 평균 ~96 scenario/shard ≈ **86,400 file**
-- 실측 (KAK-44 done): **86,958 file** ← 정확히 매칭
+- 실측: **86,958 file** ← 정확히 매칭
 
 ---
 
@@ -324,7 +324,7 @@ DDP DataLoader: `DistributedSampler` 가 4 GPU rank 별로 batch 분배.
 
 ```python
 def valid_epoch(rank, world_size, model, valid_loader):
-    model.eval()
+    model.eval
     epoch_loss = []
     epoch_metrics = []
     
@@ -337,14 +337,14 @@ def valid_epoch(rank, world_size, model, valid_loader):
             'object_type': batch[4].to(rank),
             'region_6': batch[5].to(rank),
         }
-        gt = batch[8].to(rank)  # (B, 2, 80, 5)
+        gt = batch[8].to(rank) # (B, 2, 80, 5)
         
-        with torch.no_grad():
-            outputs = model(inputs)  # K-mode joint prediction
+        with torch.no_grad:
+            outputs = model(inputs) # K-mode joint prediction
             loss, results = joint_loss(outputs, gt)
             metrics = interaction_metrics(results, gt)
         
-        epoch_loss.append(loss.item())
+        epoch_loss.append(loss.item)
         epoch_metrics.append(metrics)
     
     # all_reduce metric across GPUs
@@ -388,17 +388,17 @@ acceptance: paper 값 대비 ±10~15% margin.
 | raw download | Done (150 file, 38 GB) — A5000 (이미 destroyed) 의 작업 |
 | preprocess | **Done** (86,958 file, A5000 130 worker 진행 → network volume 보존) |
 | output sync to S3 | Done (network volume `processed/interaction/valid/` 에 보존) |
-| 학습 valid_epoch | KAK-44 의 4×H100 학습 시 매 epoch 별 자동 |
+| 학습 valid_epoch | 4×H100 학습 시 매 epoch 별 자동 |
 
-A5000 destroy 됐지만 결과는 network volume 에 그대로. KAK-44 학습 시 cross-region S3 sync 로 새 pod 에서 사용.
+A5000 destroy 됐지만 결과는 network volume 에 그대로. 학습 시 cross-region S3 sync 로 새 pod 에서 사용.
 
 ---
 
 ### 6. 관련
 
-- **KAK-52** (이 sub-task)
-- KAK-49 (parent story)
-- KAK-53 (training, 같은 preprocess script)
-- KAK-44 (학습 ticket — interaction multi-GPU train)
+- **** (이 sub-task)
+- (parent story)
+- (training, 같은 preprocess script)
+- (학습 ticket — interaction multi-GPU train)
 - code: `interaction_prediction/data_process.py`, `interaction_prediction/train.py`, `model/GameFormer.py`, `utils/interaction_train_utils.py` (추정), `utils/data_utils.py`
 - doc: [`07-data_pipeline.md`](07-data_pipeline.md), [`02-workflow.md`](02-workflow.md), [`06-full_training_plan.md`](06-full_training_plan.md)

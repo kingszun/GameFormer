@@ -35,7 +35,7 @@ ICCV'23 GameFormer reproduction — torch 2.3.1+cu118 stack, container 기반 (l
 
 ### 핵심 사실
 
-- Image: `docker.io/kingszun/gameformer:cu118-py310-torch2.3.1` (5949 MB compressed, public). base `nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04`, uv venv at `/opt/venv/gameformer` (KAK-16). sshd / gcloud / venv 모든 dep 내장 — pod 에서 추가 install 없이 즉시 사용.
+- Image: `docker.io/kingszun/gameformer:cu118-py310-torch2.3.1` (5949 MB compressed, public). base `nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04`, uv venv at `/opt/venv/gameformer`. sshd / gcloud / venv 모든 dep 내장 — pod 에서 추가 install 없이 즉시 사용.
 - 코드는 image에 포함 안 됨 — host repo를 mount 또는 cloud pod에서 git clone.
 - `data` 는 host symlink (예: `data -> /mnt/e/datasets/womd`). compose가 host에서 resolve 후 container에 bind-mount.
 - WOMD bucket: `gs://waymo_open_dataset_motion_v_1_2_1/` (us-central1).

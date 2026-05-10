@@ -491,7 +491,7 @@ class DataProcess(object):
                 for pairs in self.sdc_ids_list:
                     sdc_ids, interesting = pairs[0], pairs[1]
 
-                    # KAK-44 skip: 이미 생성된 file 은 건너뛰기 (multi-pod resume 대응)
+                    #  skip: 이미 생성된 file 은 건너뛰기 (multi-pod resume 대응)
                     inter = 'interest' if interesting==1 else 'r'
                     filename = self.save_dir + f"/{scenario_id}_{sdc_ids[0]}_{sdc_ids[1]}_{inter}.npz"
                     if os.path.exists(filename):

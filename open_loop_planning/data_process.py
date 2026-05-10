@@ -415,7 +415,7 @@ class DataProcess(object):
                 self.build_map(parsed_data.map_features, parsed_data.dynamic_map_states)
 
                 for timestep in range(self.hist_len-1, time_len-self.future_len, 5):
-                    # KAK-41 skip: 이미 생성된 file 은 건너뛰기 (multi-pod resume 대응)
+                    #  skip: 이미 생성된 file 은 건너뛰기 (multi-pod resume 대응)
                     filename = f"{save_path}/{scenario_id}_{timestep}.npz"
                     if os.path.exists(filename):
                         continue

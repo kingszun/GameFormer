@@ -13,7 +13,7 @@ if [ "$(id -u)" = "0" ]; then
     /usr/sbin/sshd 2>/dev/null || true
 fi
 
-# KAK-56: per-pod log isolation
+# per-pod log isolation
 # multi-pod 가 같은 network volume mount 시 log 충돌 회피 위해 hostname prefix.
 # LOG_PATH env 를 /etc/environment 에 추가 — ssh login shell + bash 모두 inherit.
 # 모든 script 가 ${LOG_PATH} 사용 → entrypoint 한 곳 변경 시 일관 적용.

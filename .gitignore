@@ -9,3 +9,4 @@ __pycache__/
 *.pyo
 .venv/
 .claude/scheduled_tasks.lock
+.semantic_scholar_mcp/

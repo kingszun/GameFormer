@@ -11,7 +11,7 @@ from model.GameFormer import GameFormer
 from torch.utils.data import DataLoader
 from utils.open_loop_train_utils import *
 
-# KAK-30: file_descriptor sharing 전략은 worker 수가 많을수록 fd 누적 → ulimit -n 초과.
+# file_descriptor sharing 전략은 worker 수가 많을수록 fd 누적 → ulimit -n 초과.
 # file_system 전략으로 전환하면 worker 간 tensor 공유에 fd 대신 임시 파일 사용 → fd 한계 무관.
 torch.multiprocessing.set_sharing_strategy('file_system')
 
@@ -110,7 +110,7 @@ def valid_epoch(data_loader, model):
 
 def model_training():
     # Logging
-    # KAK-33: TRAINING_LOG_HOME env 로 산출물 위치 외부화 (host: ./training_log, pod: /workspace/data/runs).
+    # TRAINING_LOG_HOME env 로 산출물 위치 외부화 (host: ./training_log, pod: /workspace/data/runs).
     log_home = os.environ.get('TRAINING_LOG_HOME', './training_log')
     log_path = f"{log_home}/{args.name}/"
     os.makedirs(log_path, exist_ok=True)
