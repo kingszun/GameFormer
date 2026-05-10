@@ -106,12 +106,14 @@ reproduction 의 종합 보고서는 [docs/report/](docs/report/) 아래.
 | [report/02b-interaction_vs_open_loop](docs/report/02b-interaction_vs_open_loop.md) | interaction vs open_loop 차이 + game-theoretic 설계 (ASCII flow) |
 | [report/02c-shared_architecture](docs/report/02c-shared_architecture.md) | 같은 model class — 출력단 동일, size + loss + index 약속만 다름 |
 | [report/02d-game_theoretic_interpretation](docs/report/02d-game_theoretic_interpretation.md) | "내가 뭐 할까" 보다 "모두가 합리적이면 시스템이 어떻게" 추론 |
+| [report/02e-multi_modal_mode_selection](docs/report/02e-multi_modal_mode_selection.md) | M=6 modality + winner-takes-all 학습 + 학습/평가/deploy mode selection mismatch |
 | [report/03-data_pipeline_meaning](docs/report/03-data_pipeline_meaning.md) | raw 부터 metric 까지 pipeline + paper 적 의미 |
 | [report/04-stack_migration](docs/report/04-stack_migration.md) | torch 1.x → 2.x stack 변경 + 환경 호환성 patch |
 | [report/05-cloud_strategy](docs/report/05-cloud_strategy.md) | cloud GPU 활용 전략 + 비용 최적화 |
 | [report/06-results](docs/report/06-results.md) | smoke + full 학습 결과 + paper baseline 대비 |
 | [report/07-limitations](docs/report/07-limitations.md) | 재현 X 부분 + 향후 작업 |
 | [report/08-original_repo_issues](docs/report/08-original_repo_issues.md) | 원본 repo 발견 이슈 + upstream PR 가능성 |
+| [report/09-traffic_sim_paradigms](docs/report/09-traffic_sim_paradigms.md) | GameFormer 한계 극복 후속 paradigm 4 종 deep-dive (12 paper, 정량 비교) |
 
 ## 작업 노트
 

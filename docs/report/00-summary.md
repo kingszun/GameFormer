@@ -15,12 +15,14 @@ ICCV'23 GameFormer paper 의 학습 path 를 현대 환경 (PyTorch 2.x + CUDA 1
 | [02b-interaction_vs_open_loop](02b-interaction_vs_open_loop.md) | 두 task 의 차이 + game-theoretic joint reasoning 설계 (ASCII flow) |
 | [02c-shared_architecture](02c-shared_architecture.md) | 같은 model class 의 specialization — 출력단 동일, size + loss + index 약속만 다름 |
 | [02d-game_theoretic_interpretation](02d-game_theoretic_interpretation.md) | "내가 뭐 할까" 보다 "모두가 합리적이면 시스템이 어떻게" — Nash equilibrium 해석 |
+| [02e-multi_modal_mode_selection](02e-multi_modal_mode_selection.md) | M=6 modality 의 의미 + winner-takes-all 학습 + 학습/평가/deploy 의 mode selection mismatch |
 | [03-data_pipeline_meaning](03-data_pipeline_meaning.md) | raw tfrecord 부터 metric 까지 각 단계의 paper 적 의미 |
 | [04-stack_migration](04-stack_migration.md) | torch 1.x → 2.x stack 변경 + 4 환경 호환성 patch |
 | [05-cloud_strategy](05-cloud_strategy.md) | cloud GPU (RunPod / pCloud) 활용 전략, 비용 최적화 |
 | [06-results](06-results.md) | smoke 결과 + full 학습 진행 + paper baseline 대비 |
 | [07-limitations](07-limitations.md) | 재현 X 부분 + 향후 작업 |
 | [08-original_repo_issues](08-original_repo_issues.md) | 원본 repo 발견 이슈 + 해결 + upstream PR 가능성 |
+| [09-traffic_sim_paradigms](09-traffic_sim_paradigms.md) | GameFormer 한계를 극복하는 후속 paradigm 4 종 deep-dive (closed-loop / RL+reward / adversarial / world model) |
 
 ## 2. 한 페이지 요약
 

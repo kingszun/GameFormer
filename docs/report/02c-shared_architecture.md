@@ -281,3 +281,85 @@ ref_line 의 진짜 역할:
 이 design 의 장점:
 - 모델 코드 재사용 (engineering 단순화)
 - task-specific behavior 가 loss + data 에 격리 → 새 task 추가 시 model 변경 없이 loss + data 만 정의
+
+## 8. Loss 의 정확한 차이 — 무엇이 다른지
+
+같은 이름의 `level_k_loss` 함수가 두 file 에 별개로 정의되어 있고 내부 구성이 다름.
+
+### 8.1. open_loop ([utils/open_loop_train_utils.py:115](../../utils/open_loop_train_utils.py#L115))
+
+```
+per level k = 0 ~ K-1:
+    loss += imitation_loss(trajectories, scores, gt_future)
+           = GMM NLL (모든 agent batch+agent 평균)
+           + GMM NLL (ego index 만 batch 평균)     ← ego 한 번 더
+           + score CE (label_smoothing=0.2)
+    if k >= 1:
+        loss += 0.1 * interaction_loss            ← physical proximity penalty
+```
+
+`interaction_loss` 는 ego ↔ neighbor + neighbor ↔ neighbor 의 거리 inverse (3m 이내 활성) — potential field penalty. ego 와 neighbor 가 가까운 trajectory 시나리오를 회피하도록 model 을 push.
+
+### 8.2. interaction ([utils/inter_pred_utils.py:101](../../utils/inter_pred_utils.py#L101))
+
+```
+per level k = 0 ~ K:
+    loss += gmm_loss(trajectories, convs, probs, gt_future)
+           = GMM NLL (ego + 1 partner 평등)
+           + 추가 weight on [t=29, 49, 79]         ← Waymo metric step
+           + 2 * score CE                           ← score weight 2배
+```
+
+physical proximity penalty 없음. timestep weighting 으로 Waymo eval (3s, 5s, 8s) 와 align.
+
+### 8.3. 직접 비교
+
+| 항목 | open_loop | interaction |
+|---|---|---|
+| modeled agent 수 | ego + N neighbor (N up to 10) | ego + 1 partner |
+| ego weighting | 2x (`gmm + gmm[:, 0]`) | 평등 |
+| score loss weight | 1x | 2x |
+| timestep weighting | uniform (5 step 마다) | uniform + [3s, 5s, 8s] 추가 |
+| log_std clip range | (-2, 2) | (0, 5) |
+| interaction_loss (proximity penalty) | k≥1 weight 0.1 | 없음 |
+| level loop | `range(K)` (K=4 → 4회) | `range(K+1)` (K=3 → 4회 = init + 3 refine) |
+
+## 9. Loss 차이가 만드는 trade-off — neighbor prediction 의 경우
+
+### 9.1. open_loop 의 neighbor 예측은 정확도가 떨어진다
+
+세 가지 이유:
+
+1. ego 12x weight — `loss = mean(all) + mean(ego)` 에서 ego effective weight ≈ 1.09, 각 neighbor ≈ 1/N ≈ 0.09. ego 가 각 neighbor 대비 약 12배 weighted → gradient 가 ego 정확도에 집중
+
+2. capacity dilution — open_loop 는 ego + 10 neighbor 를 한 model 로 학습 (per-agent capacity ≈ 1/11). interaction 은 ego + 1 partner (per-agent ≈ 1/2) → interaction 이 partner 에 더 specialize 가능
+
+3. proximity penalty bias — `interaction_loss` 가 GT 보다 더 멀리 떨어진 trajectory 를 선호하도록 push → neighbor 예측이 현실보다 conservative 해짐
+
+### 9.2. neighbor 예측의 방향성도 다름
+
+```
+실제 GT:        neighbor 가 ego 에 1.5m 까지 접근 (실제 도로의 normal)
+open_loop 예측: neighbor 가 ego 에 3m+ 거리 유지 (penalty 회피로 conservative)
+interaction 예측: neighbor 가 ego 에 1.5m (GT 매칭, pure)
+```
+
+→ open_loop 의 neighbor 예측은 "인간 운전자의 평균 + 안전거리 bias" — 정확한 prediction 이 아니라 "planning 의 input 으로 쓸 만한 conservative 가정". interaction 은 "인간 운전자의 honest joint distribution" — Waymo Challenge 를 위한 unbiased 추정.
+
+### 9.3. 이 trade-off 가 ego planning 에 주는 영향
+
+| 측면 | 효과 |
+|---|---|
+| ego trajectory 자유도 | ↑ — neighbor 가 더 멀리 떨어진다고 가정하므로 ego 의 movable space 확장 |
+| safety-critical scenario 의 underestimate | ↑ — 실제 neighbor 가 1.5m 까지 들어올 수 있는데 model 은 3m 가정 → close-proximity 시나리오 학습 X |
+| closed-loop deploy | ↓ — 실제 도로의 close interaction 시 model 의 가정 (neighbor 멀리) 이 깨지면서 OOD |
+
+paper 의 의도: open_loop 는 open-loop (한 step) prediction 이고 control stack 은 별도 — proximity penalty 가 만든 "안전한 candidate trajectory" 만 잘 나오면 OK. closed-loop 의 OOD 문제는 별도 paper (DIPP 등) 가 해결.
+
+### 9.4. 요약
+
+paper 는 두 task 의 loss 를 다르게 design 함으로써:
+- open_loop: "ego planning 정확도 + system 의 collision-safe 시나리오 prediction" 을 동시에 학습. neighbor 예측은 정확하지 않아도 ego 의 input 으로 쓸 만하면 OK
+- interaction: "ego + partner 의 honest joint distribution" 학습. Waymo metric (mAP, MR) 직접 최적화
+
+같은 GameFormer architecture 를 두 가지 다른 evaluation strategy 로 학습 → 두 specialized model 이 나옴. 그러나 이 design 의 cost 는 open_loop 의 neighbor prediction 자체는 standalone 으로 신뢰할 수 없음 — closed-loop 또는 honest neighbor prediction 이 필요한 task 에는 interaction model 이 더 적합.
